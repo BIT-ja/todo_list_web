@@ -6,7 +6,7 @@ export function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours'))
     );
 
     CREATE TABLE IF NOT EXISTS todos (
@@ -24,8 +24,8 @@ export function initDatabase() {
       location_lng REAL,
       is_urgent INTEGER NOT NULL DEFAULT 0,
       is_pinned INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
       deleted_at TEXT,
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
@@ -35,7 +35,7 @@ export function initDatabase() {
       todo_id INTEGER NOT NULL,
       user_id INTEGER NOT NULL,
       content TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
       FOREIGN KEY (todo_id) REFERENCES todos(id),
       FOREIGN KEY (user_id) REFERENCES users(id)
     );

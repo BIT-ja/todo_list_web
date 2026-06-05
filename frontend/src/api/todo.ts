@@ -39,6 +39,8 @@ export interface TodoPayload {
   priority?: number
   due_at?: string
   location?: string
+  location_lat?: number | null
+  location_lng?: number | null
   is_urgent?: number
   is_pinned?: number
 }

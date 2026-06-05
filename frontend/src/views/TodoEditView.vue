@@ -36,7 +36,7 @@
               <span>{{ link }}</span>
             </a>
           </div>
-          <van-field v-model="form.location" label="地点" placeholder="地点（选填）" />
+          <LocationPicker v-model:location="form.location" v-model:lat="form.location_lat" v-model:lng="form.location_lng" />
           <van-field
             v-model="priorityLabel"
             is-link
@@ -125,7 +125,7 @@
       <van-date-picker
         v-model="dateValue"
         title="选择截止日期"
-        :min-date="new Date()"
+        :min-date="getEast8TodayDate()"
         @confirm="onDateConfirm"
         @cancel="showDatePicker = false"
       />
@@ -147,6 +147,8 @@ import {
 } from '../api/todo'
 import { showDialog, showToast } from 'vant'
 import TodoEmpty from '../components/TodoEmpty.vue'
+import LocationPicker from '../components/LocationPicker.vue'
+import { formatEast8DateLabel, formatEast8DateTime, getEast8DatePickerValue, getEast8TodayDate } from '../utils/time'
 
 const router = useRouter()
 const route = useRoute()
@@ -157,6 +159,8 @@ const form = ref({
   priority: 0,
   due_at: '',
   location: '',
+  location_lat: null as number | null,
+  location_lng: null as number | null,
   is_urgent: false,
   is_pinned: false,
 })
@@ -183,17 +187,12 @@ const priorityLabel = computed(() => {
 
 const dueAtLabel = computed(() => {
   if (!form.value.due_at) return ''
-  const d = new Date(form.value.due_at)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return formatEast8DateLabel(form.value.due_at)
 })
 
 const contentLinks = computed(() => extractUrls(form.value.content))
 
-const dateValue = ref<string[]>([
-  String(new Date().getFullYear()),
-  String(new Date().getMonth() + 1).padStart(2, '0'),
-  String(new Date().getDate()).padStart(2, '0'),
-])
+const dateValue = ref<string[]>(getEast8DatePickerValue())
 
 function extractUrls(text: string) {
   return Array.from(new Set(text.match(/https?:\/\/[^\s]+/g) || []))
@@ -231,8 +230,7 @@ function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
 }
 
 function formatDateTime(dateStr: string) {
-  const d = new Date(dateStr)
-  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+  return formatEast8DateTime(dateStr)
 }
 
 async function fetchTodo() {
@@ -244,15 +242,12 @@ async function fetchTodo() {
     form.value.priority = todo.priority
     form.value.due_at = todo.due_at || ''
     form.value.location = todo.location || ''
+    form.value.location_lat = todo.location_lat
+    form.value.location_lng = todo.location_lng
     form.value.is_urgent = Boolean(todo.is_urgent)
     form.value.is_pinned = Boolean(todo.is_pinned)
     if (todo.due_at) {
-      const d = new Date(todo.due_at)
-      dateValue.value = [
-        String(d.getFullYear()),
-        String(d.getMonth() + 1).padStart(2, '0'),
-        String(d.getDate()).padStart(2, '0'),
-      ]
+      dateValue.value = getEast8DatePickerValue(todo.due_at)
     }
   } catch {
     notFound.value = true
@@ -280,6 +275,8 @@ async function handleSubmit() {
       priority: form.value.priority,
       due_at: form.value.due_at || undefined,
       location: form.value.location || undefined,
+      location_lat: form.value.location_lat,
+      location_lng: form.value.location_lng,
       is_urgent: form.value.is_urgent ? 1 : 0,
       is_pinned: form.value.is_pinned ? 1 : 0,
     })

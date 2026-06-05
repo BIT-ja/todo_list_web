@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import db from '../db/index.js';
 import type { User } from '../types/index.js';
+import { nowInEast8 } from '../utils/time.js';
 
 const SALT_ROUNDS = 10;
 
@@ -18,8 +19,8 @@ export function register(username: string, password: string): { user?: Omit<User
   }
 
   const passwordHash = bcrypt.hashSync(password, SALT_ROUNDS);
-  const stmt = db.prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)');
-  const result = stmt.run(username, passwordHash);
+  const stmt = db.prepare('INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)');
+  const result = stmt.run(username, passwordHash, nowInEast8());
   const row = db.prepare('SELECT id, username, created_at FROM users WHERE id = ?').get(result.lastInsertRowid) as Omit<User, 'password_hash'>;
 
   return {

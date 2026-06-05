@@ -18,11 +18,7 @@
           rows="3"
           autosize
         />
-        <van-field
-          v-model="form.location"
-          label="地点"
-          placeholder="地点（选填）"
-        />
+        <LocationPicker v-model:location="form.location" v-model:lat="form.location_lat" v-model:lng="form.location_lng" />
         <van-field
           v-model="priorityLabel"
           is-link
@@ -66,7 +62,7 @@
       <van-date-picker
         v-model="dateValue"
         title="选择截止日期"
-        :min-date="new Date()"
+        :min-date="getEast8TodayDate()"
         @confirm="onDateConfirm"
         @cancel="showDatePicker = false"
       />
@@ -79,6 +75,8 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { createTodo } from '../api/todo'
 import { showToast } from 'vant'
+import LocationPicker from '../components/LocationPicker.vue'
+import { formatEast8DateLabel, getEast8DatePickerValue, getEast8TodayDate } from '../utils/time'
 
 const router = useRouter()
 
@@ -88,6 +86,8 @@ const form = ref({
   priority: 0,
   due_at: '',
   location: '',
+  location_lat: null as number | null,
+  location_lng: null as number | null,
   is_urgent: false,
   is_pinned: false,
 })
@@ -109,15 +109,10 @@ const priorityLabel = computed(() => {
 
 const dueAtLabel = computed(() => {
   if (!form.value.due_at) return ''
-  const d = new Date(form.value.due_at)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return formatEast8DateLabel(form.value.due_at)
 })
 
-const dateValue = ref<string[]>([
-  String(new Date().getFullYear()),
-  String(new Date().getMonth() + 1).padStart(2, '0'),
-  String(new Date().getDate()).padStart(2, '0'),
-])
+const dateValue = ref<string[]>(getEast8DatePickerValue())
 
 function onPriorityConfirm({ selectedValues }: { selectedValues: number[] }) {
   form.value.priority = selectedValues[0]
@@ -139,6 +134,8 @@ async function handleSubmit() {
       priority: form.value.priority || undefined,
       due_at: form.value.due_at || undefined,
       location: form.value.location || undefined,
+      location_lat: form.value.location_lat,
+      location_lng: form.value.location_lng,
       is_urgent: form.value.is_urgent ? 1 : 0,
       is_pinned: form.value.is_pinned ? 1 : 0,
     })
