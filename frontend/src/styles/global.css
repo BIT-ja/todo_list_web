@@ -1,0 +1,28 @@
+:root {
+  --van-primary-color: #1989fa;
+  --van-danger-color: #ee0a24;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f7f8fa;
+}
+
+.page {
+  min-height: 100%;
+  padding-bottom: calc(var(--safe-bottom) + 16px);
+}
+
+.page-with-button {
+  padding-bottom: calc(var(--safe-bottom) + 80px);
+}

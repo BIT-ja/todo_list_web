@@ -1,0 +1,19 @@
+[Unit]
+Description=Todo App Backend
+After=network.target
+
+[Service]
+Type=simple
+User=todo
+Group=todo
+WorkingDirectory=/opt/todo-app/backend
+ExecStart=/usr/bin/node dist/server.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=DB_PATH=/opt/todo-app/data/todo.db
+Environment=JWT_SECRET=change-this-to-a-secure-random-string
+
+[Install]
+WantedBy=multi-user.target
