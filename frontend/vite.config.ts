@@ -4,7 +4,13 @@ import Components from 'unplugin-vue-components/vite'
 import { VantResolver } from '@vant/auto-import-resolver'
 import AutoImport from 'unplugin-auto-import/vite'
 
+const appBase = process.env.VITE_APP_BASE || '/'
+
 export default defineConfig({
+  base: appBase,
+  build: {
+    outDir: process.env.VITE_BUILD_OUT_DIR || 'dist',
+  },
   plugins: [
     vue(),
     Components({

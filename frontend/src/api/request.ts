@@ -3,8 +3,10 @@ import { getToken, removeToken } from '../utils/token'
 import { showToast } from 'vant'
 import router from '../router'
 
+const apiBase = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/api`
+
 const request = axios.create({
-  baseURL: '/api',
+  baseURL: apiBase,
   timeout: 10000,
 })
 
