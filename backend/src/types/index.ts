@@ -1,7 +1,25 @@
+export interface Organization {
+  id: number;
+  name: string;
+  invite_code: string;
+  created_at: string;
+}
+
 export interface User {
   id: number;
   username: string;
   password_hash: string;
+  organization_id: number;
+  created_at: string;
+}
+
+export interface PublicUser {
+  id: number;
+  username: string;
+  organization: {
+    id: number;
+    name: string;
+  };
   created_at: string;
 }
 

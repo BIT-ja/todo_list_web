@@ -107,6 +107,34 @@ systemctl list-timers todo-app-update.timer
 
 如果 GitHub 拉取失败，可以手动上传代码或在服务器恢复 GitHub 网络后执行更新脚本。
 
+### Organization Migration Safety
+
+组织功能通过原地迁移完成，不会重建、删除或清空 `users`、`todos`、`comments` 表：
+
+- 创建 `organizations` 表和 `for-love` 组织。
+- 为旧 `users` 表新增 `organization_id` 列。
+- 仅将尚未绑定组织的现有用户回填为 `for-love`。
+- 在同一个 SQLite 事务中校验迁移前的用户、待办和评论 ID 全部仍然存在。
+- 校验所有用户均绑定有效组织，并执行 `PRAGMA foreign_key_check`；任一检查失败时整个迁移自动回滚。
+
+生产环境更新前先执行在线备份：
+
+```bash
+cd /opt/todo-app
+sudo DB_PATH=/opt/todo-app/data/todo.db \
+  BACKUP_DIR=/opt/todo-app/backup \
+  bash deploy/backup.sh
+```
+
+备份成功后再运行更新脚本。服务启动完成后可检查数据完整性：
+
+```bash
+sqlite3 /opt/todo-app/data/todo.db "PRAGMA integrity_check;"
+sqlite3 /opt/todo-app/data/todo.db "PRAGMA foreign_key_check;"
+sqlite3 /opt/todo-app/data/todo.db \
+  "SELECT (SELECT COUNT(*) FROM users) AS users, (SELECT COUNT(*) FROM todos) AS todos;"
+```
+
 ## Verification
 
 部署或更新后检查：

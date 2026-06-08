@@ -17,6 +17,16 @@
           ]"
         />
         <van-field
+          v-model="inviteCode"
+          name="inviteCode"
+          label="邀请码"
+          placeholder="请输入组织邀请码"
+          autocomplete="off"
+          :rules="[
+            { required: true, message: '请输入邀请码' }
+          ]"
+        />
+        <van-field
           v-model="password"
           type="password"
           name="password"
@@ -61,6 +71,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const username = ref('')
+const inviteCode = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 const loading = ref(false)
@@ -68,7 +79,7 @@ const loading = ref(false)
 async function handleRegister() {
   loading.value = true
   try {
-    await userStore.register(username.value, password.value)
+    await userStore.register(username.value, password.value, inviteCode.value)
     showToast('注册成功')
     router.replace('/')
   } catch {

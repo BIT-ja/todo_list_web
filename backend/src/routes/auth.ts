@@ -4,9 +4,13 @@ import { success, error } from '../utils/response.js';
 
 export async function authRoutes(app: FastifyInstance) {
   app.post('/register', async (request, reply) => {
-    const { username, password } = request.body as { username?: string; password?: string };
+    const { username, password, inviteCode } = request.body as {
+      username?: string;
+      password?: string;
+      inviteCode?: string;
+    };
 
-    const result = authService.register(username || '', password || '');
+    const result = authService.register(username || '', password || '', inviteCode || '');
     if (result.error) {
       return reply.status(400).send(error(result.error));
     }

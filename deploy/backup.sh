@@ -2,14 +2,16 @@
 # Todo App Database Backup Script
 # Add to crontab: 0 2 * * * /opt/todo-app/deploy/backup.sh
 
+set -euo pipefail
+
 DB_PATH="${DB_PATH:-/opt/todo-app/data/todo.db}"
 BACKUP_DIR="${BACKUP_DIR:-/opt/todo-app/backup}"
 KEEP_DAYS="${KEEP_DAYS:-30}"
 
 mkdir -p "$BACKUP_DIR"
 
-DATE=$(date +%F)
-BACKUP_FILE="$BACKUP_DIR/todo-$DATE.db"
+TIMESTAMP=$(date +%F-%H%M%S)
+BACKUP_FILE="$BACKUP_DIR/todo-$TIMESTAMP.db"
 
 if [ -f "$DB_PATH" ]; then
   sqlite3 "$DB_PATH" ".backup '$BACKUP_FILE'"
