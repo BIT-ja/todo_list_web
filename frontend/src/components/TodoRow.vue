@@ -23,7 +23,8 @@
           <span>{{ todo.location }}</span>
           <button v-if="canNavigate" type="button" @click.stop="navigateToTodo">导航</button>
         </div>
-        <div v-if="todo.due_at || todo.priority > 0" class="todo-item__meta">
+        <div class="todo-item__meta">
+          <span class="todo-item__creator">{{ todo.creator_username }}</span>
           <span v-if="todo.due_at" class="todo-item__due" :class="{ 'todo-item__due--overdue': isOverdue }">
             {{ formatDate(todo.due_at) }}
           </span>
@@ -173,6 +174,10 @@ function navigateToTodo() {
 
 .todo-item__due {
   color: #969799;
+}
+
+.todo-item__creator {
+  color: #646566;
 }
 
 .todo-item__due--overdue {

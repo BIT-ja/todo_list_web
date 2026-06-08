@@ -3,6 +3,7 @@ import request from './request'
 export interface TodoItem {
   id: number
   user_id: number
+  creator_username: string
   title: string
   content: string
   status: 'active' | 'completed'

@@ -2,34 +2,67 @@ import db from '../db/index.js';
 import type { Todo, Comment, ListQuery, ListResult, CreateTodoInput, UpdateTodoInput, CreateCommentInput } from '../types/index.js';
 import { nowInEast8 } from '../utils/time.js';
 
+const todoSelect = `
+  SELECT todos.*, owner.username AS creator_username
+  FROM todos
+  JOIN users AS owner ON owner.id = todos.user_id
+`;
+
+function getAccessibleTodo(userId: number, todoId: number): Todo | undefined {
+  return db.prepare(`
+    ${todoSelect}
+    JOIN users AS viewer ON viewer.id = ?
+    WHERE todos.id = ?
+      AND owner.organization_id = viewer.organization_id
+      AND todos.deleted_at IS NULL
+  `).get(userId, todoId) as Todo | undefined;
+}
+
 export function list(userId: number, query: ListQuery): ListResult<Todo> {
   const { status, keyword, page = 1, pageSize = 20 } = query;
   const offset = (page - 1) * pageSize;
 
-  let whereClause = 'WHERE user_id = ? AND deleted_at IS NULL';
+  let whereClause = `
+    WHERE owner.organization_id = viewer.organization_id
+      AND todos.deleted_at IS NULL
+  `;
   const params: unknown[] = [userId];
 
   if (status) {
-    whereClause += ' AND status = ?';
+    whereClause += ' AND todos.status = ?';
     params.push(status);
   }
   if (keyword) {
-    whereClause += ' AND (title LIKE ? OR content LIKE ?)';
+    whereClause += ' AND (todos.title LIKE ? OR todos.content LIKE ?)';
     params.push(`%${keyword}%`, `%${keyword}%`);
   }
 
-  const countRow = db.prepare(`SELECT COUNT(*) as total FROM todos ${whereClause}`).get(...params) as { total: number };
+  const fromClause = `
+    FROM todos
+    JOIN users AS owner ON owner.id = todos.user_id
+    JOIN users AS viewer ON viewer.id = ?
+  `;
+  const countRow = db.prepare(`SELECT COUNT(*) AS total ${fromClause} ${whereClause}`).get(...params) as { total: number };
 
   // Sorting: pinned > urgent > priority > sort_order > created_at
-  const rows = db.prepare(
-    `SELECT * FROM todos ${whereClause} ORDER BY is_pinned DESC, is_urgent DESC, priority DESC, sort_order DESC, created_at DESC LIMIT ? OFFSET ?`
-  ).all(...params, pageSize, offset) as Todo[];
+  const rows = db.prepare(`
+    SELECT todos.*, owner.username AS creator_username
+    ${fromClause}
+    ${whereClause}
+    ORDER BY
+      todos.is_pinned DESC,
+      todos.is_urgent DESC,
+      todos.priority DESC,
+      todos.sort_order DESC,
+      todos.created_at DESC
+    LIMIT ? OFFSET ?
+  `).all(...params, pageSize, offset) as Todo[];
 
   return { list: rows, total: countRow.total };
 }
 
 export function getById(userId: number, todoId: number): { todo?: Todo; error?: string } {
-  const todo = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
+  const todo = getAccessibleTodo(userId, todoId);
   if (!todo) {
     return { error: '待办不存在或已被删除' };
   }
@@ -67,12 +100,11 @@ export function create(userId: number, input: CreateTodoInput): { todo?: Todo; e
     now
   );
 
-  const todo = db.prepare('SELECT * FROM todos WHERE id = ?').get(result.lastInsertRowid) as Todo;
-  return { todo };
+  return { todo: getAccessibleTodo(userId, Number(result.lastInsertRowid)) };
 }
 
 export function update(userId: number, todoId: number, input: UpdateTodoInput): { todo?: Todo; error?: string } {
-  const existing = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
+  const existing = getAccessibleTodo(userId, todoId);
   if (!existing) {
     return { error: '待办不存在或已被删除' };
   }
@@ -95,12 +127,11 @@ export function update(userId: number, todoId: number, input: UpdateTodoInput): 
   params.push(todoId);
   db.prepare(`UPDATE todos SET ${setClauses.join(', ')} WHERE id = ?`).run(...params);
 
-  const todo = db.prepare('SELECT * FROM todos WHERE id = ?').get(todoId) as Todo;
-  return { todo };
+  return { todo: getAccessibleTodo(userId, todoId) };
 }
 
 export function complete(userId: number, todoId: number): { todo?: Todo; error?: string } {
-  const existing = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
+  const existing = getAccessibleTodo(userId, todoId);
   if (!existing) {
     return { error: '待办不存在或已被删除' };
   }
@@ -113,12 +144,11 @@ export function complete(userId: number, todoId: number): { todo?: Todo; error?:
     `UPDATE todos SET status = 'completed', completed_at = ?, updated_at = ? WHERE id = ?`
   ).run(now, now, todoId);
 
-  const todo = db.prepare('SELECT * FROM todos WHERE id = ?').get(todoId) as Todo;
-  return { todo };
+  return { todo: getAccessibleTodo(userId, todoId) };
 }
 
 export function uncomplete(userId: number, todoId: number): { todo?: Todo; error?: string } {
-  const existing = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
+  const existing = getAccessibleTodo(userId, todoId);
   if (!existing) {
     return { error: '待办不存在或已被删除' };
   }
@@ -130,12 +160,11 @@ export function uncomplete(userId: number, todoId: number): { todo?: Todo; error
     `UPDATE todos SET status = 'active', completed_at = NULL, updated_at = ? WHERE id = ?`
   ).run(nowInEast8(), todoId);
 
-  const todo = db.prepare('SELECT * FROM todos WHERE id = ?').get(todoId) as Todo;
-  return { todo };
+  return { todo: getAccessibleTodo(userId, todoId) };
 }
 
 export function remove(userId: number, todoId: number): { error?: string } {
-  const existing = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
+  const existing = getAccessibleTodo(userId, todoId);
   if (!existing) {
     return { error: '待办不存在或已被删除' };
   }
@@ -149,35 +178,35 @@ export function remove(userId: number, todoId: number): { error?: string } {
 }
 
 export function pin(userId: number, todoId: number): { todo?: Todo; error?: string } {
-  const existing = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
+  const existing = getAccessibleTodo(userId, todoId);
   if (!existing) return { error: '待办不存在或已被删除' };
   if (existing.is_pinned === 1) return { error: '待办已置顶' };
   db.prepare('UPDATE todos SET is_pinned = 1, updated_at = ? WHERE id = ?').run(nowInEast8(), todoId);
-  return { todo: db.prepare('SELECT * FROM todos WHERE id = ?').get(todoId) as Todo };
+  return { todo: getAccessibleTodo(userId, todoId) };
 }
 
 export function unpin(userId: number, todoId: number): { todo?: Todo; error?: string } {
-  const existing = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
+  const existing = getAccessibleTodo(userId, todoId);
   if (!existing) return { error: '待办不存在或已被删除' };
   if (existing.is_pinned === 0) return { error: '待办未置顶' };
   db.prepare('UPDATE todos SET is_pinned = 0, updated_at = ? WHERE id = ?').run(nowInEast8(), todoId);
-  return { todo: db.prepare('SELECT * FROM todos WHERE id = ?').get(todoId) as Todo };
+  return { todo: getAccessibleTodo(userId, todoId) };
 }
 
 export function urgent(userId: number, todoId: number): { todo?: Todo; error?: string } {
-  const existing = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
+  const existing = getAccessibleTodo(userId, todoId);
   if (!existing) return { error: '待办不存在或已被删除' };
   if (existing.is_urgent === 1) return { error: '待办已加急' };
   db.prepare('UPDATE todos SET is_urgent = 1, updated_at = ? WHERE id = ?').run(nowInEast8(), todoId);
-  return { todo: db.prepare('SELECT * FROM todos WHERE id = ?').get(todoId) as Todo };
+  return { todo: getAccessibleTodo(userId, todoId) };
 }
 
 export function unurgent(userId: number, todoId: number): { todo?: Todo; error?: string } {
-  const existing = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
+  const existing = getAccessibleTodo(userId, todoId);
   if (!existing) return { error: '待办不存在或已被删除' };
   if (existing.is_urgent === 0) return { error: '待办未加急' };
   db.prepare('UPDATE todos SET is_urgent = 0, updated_at = ? WHERE id = ?').run(nowInEast8(), todoId);
-  return { todo: db.prepare('SELECT * FROM todos WHERE id = ?').get(todoId) as Todo };
+  return { todo: getAccessibleTodo(userId, todoId) };
 }
 
 // Comment functions
@@ -191,7 +220,7 @@ function getCommentById(commentId: number) {
 }
 
 export function listComments(userId: number, todoId: number): { comments?: Comment[]; error?: string } {
-  const todo = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
+  const todo = getAccessibleTodo(userId, todoId);
   if (!todo) return { error: '待办不存在或已被删除' };
   return {
     comments: db.prepare(
@@ -207,14 +236,25 @@ export function listComments(userId: number, todoId: number): { comments?: Comme
 export function addComment(userId: number, todoId: number, input: CreateCommentInput): { comment?: Comment; error?: string } {
   if (!input.content || input.content.trim().length === 0) return { error: '评论内容不能为空' };
   if (input.content.length > 500) return { error: '评论不能超过 500 个字符' };
-  const todo = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
+  const todo = getAccessibleTodo(userId, todoId);
   if (!todo) return { error: '待办不存在或已被删除' };
   const result = db.prepare('INSERT INTO comments (todo_id, user_id, content, created_at) VALUES (?, ?, ?, ?)').run(todoId, userId, input.content.trim(), nowInEast8());
   return { comment: getCommentById(Number(result.lastInsertRowid)) };
 }
 
-export function deleteComment(userId: number, commentId: number): { error?: string } {
-  const comment = db.prepare('SELECT * FROM comments WHERE id = ? AND user_id = ?').get(commentId, userId) as Comment | undefined;
+export function deleteComment(userId: number, todoId: number, commentId: number): { error?: string } {
+  const comment = db.prepare(`
+    SELECT comments.id
+    FROM comments
+    JOIN todos ON todos.id = comments.todo_id
+    JOIN users AS owner ON owner.id = todos.user_id
+    JOIN users AS viewer ON viewer.id = ?
+    WHERE comments.id = ?
+      AND comments.todo_id = ?
+      AND comments.user_id = ?
+      AND owner.organization_id = viewer.organization_id
+      AND todos.deleted_at IS NULL
+  `).get(userId, commentId, todoId, userId) as Pick<Comment, 'id'> | undefined;
   if (!comment) return { error: '评论不存在' };
   db.prepare('DELETE FROM comments WHERE id = ?').run(commentId);
   return {};

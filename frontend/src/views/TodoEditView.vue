@@ -23,6 +23,11 @@
             rows="3"
             autosize
           />
+          <van-field
+            :model-value="creatorUsername"
+            label="创建人"
+            readonly
+          />
           <div v-if="contentLinks.length" class="link-preview">
             <a
               v-for="link in contentLinks"
@@ -179,6 +184,7 @@ const commentText = ref('')
 const loading = ref(false)
 const commentsLoading = ref(false)
 const commentSaving = ref(false)
+const creatorUsername = ref('')
 const notFound = ref(false)
 const showPriorityPicker = ref(false)
 const showDatePicker = ref(false)
@@ -273,6 +279,7 @@ async function fetchTodo() {
   try {
     const id = Number(route.params.id)
     const todo = await getTodoById(id)
+    creatorUsername.value = todo.creator_username
     form.value.title = todo.title
     form.value.content = todo.content
     form.value.priority = todo.priority

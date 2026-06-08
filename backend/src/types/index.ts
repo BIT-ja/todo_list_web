@@ -26,6 +26,7 @@ export interface PublicUser {
 export interface Todo {
   id: number;
   user_id: number;
+  creator_username: string;
   title: string;
   content: string;
   status: 'active' | 'completed';

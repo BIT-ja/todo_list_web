@@ -118,8 +118,8 @@ export async function todoRoutes(app: FastifyInstance) {
   });
 
   app.delete<{ Params: { id: string; commentId: string } }>('/:id/comments/:commentId', async (request, reply) => {
-    const { commentId } = request.params;
-    const result = todoService.deleteComment(request.userId, Number(commentId));
+    const { id, commentId } = request.params;
+    const result = todoService.deleteComment(request.userId, Number(id), Number(commentId));
     if (result.error) return reply.status(400).send(error(result.error));
     return reply.send(success(null, '删除成功'));
   });
