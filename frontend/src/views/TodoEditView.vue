@@ -83,16 +83,23 @@
           </div>
           <div v-else-if="!comments.length" class="comments-empty">暂无评论</div>
           <div v-else class="comment-list">
-            <div v-for="comment in comments" :key="comment.id" class="comment-item">
-              <div class="comment-item__content">
-                <template v-for="(part, index) in parseTextLinks(comment.content)" :key="`${comment.id}-${index}`">
-                  <a v-if="part.url" :href="part.url" target="_blank" rel="noreferrer">{{ part.text }}</a>
-                  <span v-else>{{ part.text }}</span>
-                </template>
-              </div>
-              <div class="comment-item__footer">
-                <span>{{ formatDateTime(comment.created_at) }}</span>
-                <van-button size="mini" type="danger" plain @click="handleDeleteComment(comment.id)">删除</van-button>
+            <div
+              v-for="comment in comments"
+              :key="comment.id"
+              class="comment-item"
+              :class="{ 'comment-item--mine': isMyComment(comment) }"
+            >
+              <div class="comment-avatar">{{ getCommentAvatarText(comment) }}</div>
+              <div class="comment-bubble">
+                <div class="comment-bubble__content">
+                  <template v-for="(part, index) in parseTextLinks(comment.content)" :key="`${comment.id}-${index}`">
+                    <a v-if="part.url" :href="part.url" target="_blank" rel="noreferrer">{{ part.text }}</a>
+                    <span v-else>{{ part.text }}</span>
+                  </template>
+                </div>
+                <div class="comment-bubble__footer">
+                  <span>{{ formatDateTime(comment.created_at) }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -142,16 +149,18 @@ import {
   deleteTodo,
   getTodoComments,
   addTodoComment,
-  deleteTodoComment,
   type TodoComment,
 } from '../api/todo'
 import { showDialog, showToast } from 'vant'
 import TodoEmpty from '../components/TodoEmpty.vue'
 import LocationPicker from '../components/LocationPicker.vue'
 import { formatEast8DateLabel, formatEast8DateTime, getEast8DatePickerValue, getEast8TodayDate } from '../utils/time'
+import { useUserStore } from '../stores/user'
+import { getToken } from '../utils/token'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 const form = ref({
   title: '',
@@ -191,6 +200,7 @@ const dueAtLabel = computed(() => {
 })
 
 const contentLinks = computed(() => extractUrls(form.value.content))
+const currentUserId = computed(() => userStore.userId ?? getTokenUserId())
 
 const dateValue = ref<string[]>(getEast8DatePickerValue())
 
@@ -231,6 +241,32 @@ function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
 
 function formatDateTime(dateStr: string) {
   return formatEast8DateTime(dateStr)
+}
+
+function isMyComment(comment: TodoComment) {
+  return Number(comment.user_id) === currentUserId.value
+}
+
+function getCommentAvatarText(comment: TodoComment) {
+  const username = (comment.username || '').trim()
+  return (username.charAt(0) || '?').toUpperCase()
+}
+
+function getTokenUserId() {
+  const token = getToken()
+  if (!token) return null
+
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const json = atob(normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '='))
+    const data = JSON.parse(json) as { userId?: unknown }
+    return typeof data.userId === 'number' ? data.userId : null
+  } catch {
+    return null
+  }
 }
 
 async function fetchTodo() {
@@ -321,18 +357,10 @@ async function handleAddComment() {
   }
 }
 
-async function handleDeleteComment(commentId: number) {
-  try {
-    await showDialog({ title: '删除评论', message: '确定删除这条评论吗？', showCancelButton: true })
-    await deleteTodoComment(Number(route.params.id), commentId)
-    showToast('已删除')
-    fetchComments()
-  } catch {
-    // cancelled or error
+onMounted(async () => {
+  if (userStore.userId == null) {
+    await userStore.fetchUser()
   }
-}
-
-onMounted(() => {
   fetchTodo()
   fetchComments()
 })
@@ -393,36 +421,92 @@ onMounted(() => {
 }
 
 .comment-list {
-  background: #fff;
+  padding: 12px 12px 14px;
+  background: #f7f8fa;
 }
 
 .comment-item {
-  padding: 12px 16px;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 32px;
+  column-gap: 8px;
+  align-items: flex-start;
+  width: 100%;
 }
 
 .comment-item + .comment-item {
-  border-top: 1px solid #f1f2f5;
+  margin-top: 12px;
 }
 
-.comment-item__content {
-  color: #323233;
+.comment-item--mine {
+  justify-items: end;
+}
+
+.comment-avatar {
+  display: flex;
+  grid-column: 1;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  background: #7d8da6;
+  border-radius: 50%;
+}
+
+.comment-item--mine .comment-avatar {
+  grid-column: 3;
+  grid-row: 1;
+  background: #1989fa;
+}
+
+.comment-bubble {
+  grid-column: 2;
+  justify-self: start;
+  max-width: 82%;
+  padding: 10px 12px;
+  color: #000;
+  background: #D2E3FF;
+  border: 1px solid #D2E3FF;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.comment-item--mine .comment-bubble {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  color: #000;
+  background: #D2E3FF;
+  border-color: #D2E3FF;
+}
+
+.comment-bubble__content {
+  color: #000;
   font-size: 14px;
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-.comment-item__content a {
+.comment-bubble__content a {
   color: #1989fa;
 }
 
-.comment-item__footer {
+.comment-bubble__footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 8px;
   margin-top: 8px;
   color: #969799;
   font-size: 12px;
+}
+
+.comment-item--mine .comment-bubble__footer {
+  justify-content: flex-end;
 }
 
 .comment-editor {

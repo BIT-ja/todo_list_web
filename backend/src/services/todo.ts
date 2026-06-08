@@ -181,10 +181,27 @@ export function unurgent(userId: number, todoId: number): { todo?: Todo; error?:
 }
 
 // Comment functions
+function getCommentById(commentId: number) {
+  return db.prepare(
+    `SELECT comments.*, users.username
+     FROM comments
+     JOIN users ON users.id = comments.user_id
+     WHERE comments.id = ?`
+  ).get(commentId) as Comment | undefined;
+}
+
 export function listComments(userId: number, todoId: number): { comments?: Comment[]; error?: string } {
   const todo = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
   if (!todo) return { error: '待办不存在或已被删除' };
-  return { comments: db.prepare('SELECT * FROM comments WHERE todo_id = ? ORDER BY created_at ASC').all(todoId) as Comment[] };
+  return {
+    comments: db.prepare(
+      `SELECT comments.*, users.username
+       FROM comments
+       JOIN users ON users.id = comments.user_id
+       WHERE comments.todo_id = ?
+       ORDER BY comments.created_at ASC`
+    ).all(todoId) as Comment[],
+  };
 }
 
 export function addComment(userId: number, todoId: number, input: CreateCommentInput): { comment?: Comment; error?: string } {
@@ -193,7 +210,7 @@ export function addComment(userId: number, todoId: number, input: CreateCommentI
   const todo = db.prepare('SELECT * FROM todos WHERE id = ? AND user_id = ? AND deleted_at IS NULL').get(todoId, userId) as Todo | undefined;
   if (!todo) return { error: '待办不存在或已被删除' };
   const result = db.prepare('INSERT INTO comments (todo_id, user_id, content, created_at) VALUES (?, ?, ?, ?)').run(todoId, userId, input.content.trim(), nowInEast8());
-  return { comment: db.prepare('SELECT * FROM comments WHERE id = ?').get(result.lastInsertRowid) as Comment };
+  return { comment: getCommentById(Number(result.lastInsertRowid)) };
 }
 
 export function deleteComment(userId: number, commentId: number): { error?: string } {
