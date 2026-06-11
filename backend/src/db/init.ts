@@ -2,6 +2,14 @@ import db from './index.js';
 
 const DEFAULT_ORGANIZATION_NAME = 'for-love';
 const DEFAULT_ORGANIZATION_INVITE_CODE = '201124Cc';
+const DEFAULT_TODO_CATEGORIES = [
+  { name: '吃喝', icon: 'utensils', color: '#ff976a' },
+  { name: '玩乐', icon: 'gamepad-2', color: '#9c6ade' },
+  { name: '骑行', icon: 'bike', color: '#07c160' },
+  { name: '开车', icon: 'car', color: '#1989fa' },
+  { name: '出游', icon: 'map', color: '#00b8d9' },
+  { name: '其他', icon: 'sparkles', color: '#7d8da6' },
+];
 
 function createPreservationSnapshots() {
   db.exec(`
@@ -75,6 +83,20 @@ function assertExistingRowsPreserved() {
   `);
 }
 
+function seedDefaultTodoCategories() {
+  const organizations = db.prepare('SELECT id FROM organizations').all() as { id: number }[];
+  const stmt = db.prepare(`
+    INSERT OR IGNORE INTO todo_categories (organization_id, name, icon, color, created_at, updated_at)
+    VALUES (?, ?, ?, ?, datetime('now', '+8 hours'), datetime('now', '+8 hours'))
+  `);
+
+  for (const organization of organizations) {
+    for (const category of DEFAULT_TODO_CATEGORIES) {
+      stmt.run(organization.id, category.name, category.icon, category.color);
+    }
+  }
+}
+
 export function initDatabase() {
   const migrate = db.transaction(() => {
     db.exec(`
@@ -113,9 +135,22 @@ export function initDatabase() {
         FOREIGN KEY (organization_id) REFERENCES organizations(id)
       );
 
+      CREATE TABLE IF NOT EXISTS todo_categories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        organization_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        icon TEXT NOT NULL,
+        color TEXT NOT NULL DEFAULT '#7d8da6',
+        created_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
+        UNIQUE (organization_id, name),
+        FOREIGN KEY (organization_id) REFERENCES organizations(id)
+      );
+
       CREATE TABLE IF NOT EXISTS todos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
+        category_id INTEGER,
         title TEXT NOT NULL,
         content TEXT DEFAULT '',
         status TEXT NOT NULL DEFAULT 'active',
@@ -126,12 +161,14 @@ export function initDatabase() {
         location TEXT,
         location_lat REAL,
         location_lng REAL,
+        locations TEXT,
         is_urgent INTEGER NOT NULL DEFAULT 0,
         is_pinned INTEGER NOT NULL DEFAULT 0,
         created_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
         updated_at TEXT NOT NULL DEFAULT (datetime('now', '+8 hours')),
         deleted_at TEXT,
-        FOREIGN KEY (user_id) REFERENCES users(id)
+        FOREIGN KEY (user_id) REFERENCES users(id),
+        FOREIGN KEY (category_id) REFERENCES todo_categories(id)
       );
 
       CREATE TABLE IF NOT EXISTS comments (
@@ -160,9 +197,11 @@ export function initDatabase() {
     const todoColumns = db.prepare("PRAGMA table_info('todos')").all() as { name: string }[];
     const existingTodoColumns = new Set(todoColumns.map(column => column.name));
     const newTodoColumns = [
+      { name: 'category_id', sql: 'ALTER TABLE todos ADD COLUMN category_id INTEGER REFERENCES todo_categories(id)' },
       { name: 'location', sql: 'ALTER TABLE todos ADD COLUMN location TEXT' },
       { name: 'location_lat', sql: 'ALTER TABLE todos ADD COLUMN location_lat REAL' },
       { name: 'location_lng', sql: 'ALTER TABLE todos ADD COLUMN location_lng REAL' },
+      { name: 'locations', sql: 'ALTER TABLE todos ADD COLUMN locations TEXT' },
       { name: 'is_urgent', sql: 'ALTER TABLE todos ADD COLUMN is_urgent INTEGER NOT NULL DEFAULT 0' },
       { name: 'is_pinned', sql: 'ALTER TABLE todos ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0' },
     ];
@@ -173,13 +212,30 @@ export function initDatabase() {
       }
     }
 
+    seedDefaultTodoCategories();
+
+    db.exec(`
+      UPDATE todos
+      SET category_id = (
+        SELECT categories.id
+        FROM todo_categories AS categories
+        JOIN users AS owner ON owner.organization_id = categories.organization_id
+        WHERE owner.id = todos.user_id
+          AND categories.name = '其他'
+        LIMIT 1
+      )
+      WHERE category_id IS NULL;
+    `);
+
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_todos_user_status ON todos(user_id, status);
       CREATE INDEX IF NOT EXISTS idx_todos_deleted_at ON todos(deleted_at);
       CREATE INDEX IF NOT EXISTS idx_todos_pinned_urgent ON todos(user_id, is_pinned, is_urgent);
+      CREATE INDEX IF NOT EXISTS idx_todos_category ON todos(category_id);
       CREATE INDEX IF NOT EXISTS idx_comments_todo ON comments(todo_id);
       CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
       CREATE INDEX IF NOT EXISTS idx_users_organization ON users(organization_id);
+      CREATE INDEX IF NOT EXISTS idx_todo_categories_organization ON todo_categories(organization_id);
 
       CREATE TRIGGER IF NOT EXISTS prevent_organization_invite_code_update
       BEFORE UPDATE OF invite_code ON organizations

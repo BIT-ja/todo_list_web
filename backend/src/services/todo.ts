@@ -1,21 +1,210 @@
 import db from '../db/index.js';
-import type { Todo, Comment, ListQuery, ListResult, CreateTodoInput, UpdateTodoInput, CreateCommentInput } from '../types/index.js';
+import type { Todo, TodoLocation, Comment, ListQuery, ListResult, CreateTodoInput, UpdateTodoInput, CreateCommentInput } from '../types/index.js';
 import { nowInEast8 } from '../utils/time.js';
 
+type TodoRow = Omit<Todo, 'locations'> & { locations: string | null };
+
+const MAX_TODO_LOCATIONS = 5;
+
 const todoSelect = `
-  SELECT todos.*, owner.username AS creator_username
+  SELECT
+    todos.*,
+    owner.username AS creator_username,
+    categories.name AS category_name,
+    categories.icon AS category_icon,
+    categories.color AS category_color
   FROM todos
   JOIN users AS owner ON owner.id = todos.user_id
+  LEFT JOIN todo_categories AS categories ON categories.id = todos.category_id
 `;
 
+function normalizeCoordinate(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function normalizeLocationForInput(value: unknown): { location?: TodoLocation; error?: string } {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+
+  const raw = value as { name?: unknown; lat?: unknown; lng?: unknown };
+  const name = typeof raw.name === 'string' ? raw.name.trim() : '';
+  const lat = normalizeCoordinate(raw.lat);
+  const lng = normalizeCoordinate(raw.lng);
+
+  if (!name && lat === null && lng === null) {
+    return {};
+  }
+  if (!name) {
+    return { error: '地点名称不能为空' };
+  }
+  if (name.length > 120) {
+    return { error: '地点名称不能超过 120 个字符' };
+  }
+  if ((lat === null) !== (lng === null)) {
+    return { error: '地点经纬度需要同时填写' };
+  }
+
+  return { location: { name, lat, lng } };
+}
+
+function normalizeLocationsForInput(value: unknown): { locations?: TodoLocation[]; error?: string } {
+  if (value === undefined) {
+    return {};
+  }
+  if (!Array.isArray(value)) {
+    return { error: '地点格式不正确' };
+  }
+
+  const locations: TodoLocation[] = [];
+  for (const item of value) {
+    const result = normalizeLocationForInput(item);
+    if (result.error) {
+      return { error: result.error };
+    }
+    if (result.location) {
+      locations.push(result.location);
+    }
+  }
+
+  if (locations.length > MAX_TODO_LOCATIONS) {
+    return { error: `地点最多只能选择 ${MAX_TODO_LOCATIONS} 个` };
+  }
+
+  return { locations };
+}
+
+function normalizeLocationForOutput(value: unknown): TodoLocation | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+
+  const raw = value as { name?: unknown; lat?: unknown; lng?: unknown };
+  const name = typeof raw.name === 'string' ? raw.name.trim() : '';
+  const lat = normalizeCoordinate(raw.lat);
+  const lng = normalizeCoordinate(raw.lng);
+
+  if (!name) {
+    return null;
+  }
+
+  return { name, lat, lng };
+}
+
+function parseLocations(row: TodoRow): TodoLocation[] {
+  if (row.locations) {
+    try {
+      const parsed = JSON.parse(row.locations) as unknown;
+      if (Array.isArray(parsed)) {
+        const locations = parsed
+          .map(normalizeLocationForOutput)
+          .filter((location): location is TodoLocation => location !== null)
+          .slice(0, MAX_TODO_LOCATIONS);
+        if (locations.length > 0) {
+          return locations;
+        }
+      }
+    } catch {
+      // Fall back to the legacy single-location columns below.
+    }
+  }
+
+  if (!row.location) {
+    return [];
+  }
+
+  return [{
+    name: row.location,
+    lat: row.location_lat,
+    lng: row.location_lng,
+  }];
+}
+
+function mapTodo(row: TodoRow | undefined): Todo | undefined {
+  if (!row) {
+    return undefined;
+  }
+
+  const { locations, ...todo } = row;
+  return {
+    ...todo,
+    locations: parseLocations(row),
+  };
+}
+
+function serializeLocations(locations: TodoLocation[]): string | null {
+  return locations.length > 0 ? JSON.stringify(locations) : null;
+}
+
+function getPrimaryLocation(locations: TodoLocation[]) {
+  return locations[0] ?? null;
+}
+
+function legacyInputToLocations(input: {
+  location?: string;
+  location_lat?: number | null;
+  location_lng?: number | null;
+}) {
+  if (!input.location && input.location_lat === undefined && input.location_lng === undefined) {
+    return [];
+  }
+
+  return [{
+    name: input.location || '',
+    lat: input.location_lat ?? null,
+    lng: input.location_lng ?? null,
+  }];
+}
+
+function getDefaultCategoryId(userId: number): number | null {
+  const row = db.prepare(`
+    SELECT categories.id
+    FROM todo_categories AS categories
+    JOIN users AS viewer ON viewer.organization_id = categories.organization_id
+    WHERE viewer.id = ?
+      AND categories.name = '其他'
+    LIMIT 1
+  `).get(userId) as { id: number } | undefined;
+  return row?.id ?? null;
+}
+
+function validateCategoryId(userId: number, categoryId: number | null | undefined): { categoryId?: number | null; error?: string } {
+  if (categoryId === undefined) {
+    return {};
+  }
+  if (categoryId === null) {
+    return { categoryId: null };
+  }
+
+  const row = db.prepare(`
+    SELECT categories.id
+    FROM todo_categories AS categories
+    JOIN users AS viewer ON viewer.organization_id = categories.organization_id
+    WHERE viewer.id = ?
+      AND categories.id = ?
+  `).get(userId, categoryId) as { id: number } | undefined;
+
+  if (!row) {
+    return { error: '分类不存在或不属于当前组织' };
+  }
+
+  return { categoryId: row.id };
+}
+
 function getAccessibleTodo(userId: number, todoId: number): Todo | undefined {
-  return db.prepare(`
+  const row = db.prepare(`
     ${todoSelect}
     JOIN users AS viewer ON viewer.id = ?
     WHERE todos.id = ?
       AND owner.organization_id = viewer.organization_id
       AND todos.deleted_at IS NULL
-  `).get(userId, todoId) as Todo | undefined;
+  `).get(userId, todoId) as TodoRow | undefined;
+  return mapTodo(row);
 }
 
 export function list(userId: number, query: ListQuery): ListResult<Todo> {
@@ -41,24 +230,32 @@ export function list(userId: number, query: ListQuery): ListResult<Todo> {
     FROM todos
     JOIN users AS owner ON owner.id = todos.user_id
     JOIN users AS viewer ON viewer.id = ?
+    LEFT JOIN todo_categories AS categories ON categories.id = todos.category_id
   `;
   const countRow = db.prepare(`SELECT COUNT(*) AS total ${fromClause} ${whereClause}`).get(...params) as { total: number };
 
-  // Sorting: pinned > urgent > priority > sort_order > created_at
+  // Sorting: pinned > urgent > priority > earliest due date > sort_order > created_at
   const rows = db.prepare(`
-    SELECT todos.*, owner.username AS creator_username
+    SELECT
+      todos.*,
+      owner.username AS creator_username,
+      categories.name AS category_name,
+      categories.icon AS category_icon,
+      categories.color AS category_color
     ${fromClause}
     ${whereClause}
     ORDER BY
       todos.is_pinned DESC,
       todos.is_urgent DESC,
       todos.priority DESC,
+      todos.due_at IS NULL ASC,
+      todos.due_at ASC,
       todos.sort_order DESC,
       todos.created_at DESC
     LIMIT ? OFFSET ?
-  `).all(...params, pageSize, offset) as Todo[];
+  `).all(...params, pageSize, offset) as TodoRow[];
 
-  return { list: rows, total: countRow.total };
+  return { list: rows.map(row => mapTodo(row) as Todo), total: countRow.total };
 }
 
 export function getById(userId: number, todoId: number): { todo?: Todo; error?: string } {
@@ -79,21 +276,39 @@ export function create(userId: number, input: CreateTodoInput): { todo?: Todo; e
   if (input.priority !== undefined && (input.priority < 0 || input.priority > 3)) {
     return { error: '优先级应为 0-3' };
   }
+  const category = validateCategoryId(
+    userId,
+    input.category_id !== undefined ? input.category_id : getDefaultCategoryId(userId)
+  );
+  if (category.error) {
+    return { error: category.error };
+  }
+
+  const normalizedLocations = normalizeLocationsForInput(
+    input.locations !== undefined ? input.locations : legacyInputToLocations(input)
+  );
+  if (normalizedLocations.error) {
+    return { error: normalizedLocations.error };
+  }
+  const locations = normalizedLocations.locations ?? [];
+  const primaryLocation = getPrimaryLocation(locations);
 
   const stmt = db.prepare(
-    `INSERT INTO todos (user_id, title, content, priority, due_at, location, location_lat, location_lng, is_urgent, is_pinned, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO todos (user_id, category_id, title, content, priority, due_at, location, location_lat, location_lng, locations, is_urgent, is_pinned, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   );
   const now = nowInEast8();
   const result = stmt.run(
     userId,
+    category.categoryId ?? null,
     input.title.trim(),
     input.content || '',
     input.priority ?? 0,
     input.due_at || null,
-    input.location || null,
-    input.location_lat ?? null,
-    input.location_lng ?? null,
+    primaryLocation?.name ?? null,
+    primaryLocation?.lat ?? null,
+    primaryLocation?.lng ?? null,
+    serializeLocations(locations),
     input.is_urgent ?? 0,
     input.is_pinned ?? 0,
     now,
@@ -109,7 +324,11 @@ export function update(userId: number, todoId: number, input: UpdateTodoInput): 
     return { error: '待办不存在或已被删除' };
   }
 
-  const allowedFields: (keyof UpdateTodoInput)[] = ['title', 'content', 'priority', 'due_at', 'sort_order', 'location', 'location_lat', 'location_lng', 'is_urgent', 'is_pinned'];
+  if (input.priority !== undefined && (input.priority < 0 || input.priority > 3)) {
+    return { error: '优先级应为 0-3' };
+  }
+
+  const allowedFields: (keyof UpdateTodoInput)[] = ['title', 'content', 'priority', 'due_at', 'sort_order', 'is_urgent', 'is_pinned'];
   const setClauses: string[] = ['updated_at = ?'];
   const params: unknown[] = [nowInEast8()];
 
@@ -118,6 +337,43 @@ export function update(userId: number, todoId: number, input: UpdateTodoInput): 
       setClauses.push(`${field} = ?`);
       params.push(input[field]);
     }
+  }
+
+  if (input.category_id !== undefined) {
+    const category = validateCategoryId(userId, input.category_id);
+    if (category.error) {
+      return { error: category.error };
+    }
+    setClauses.push('category_id = ?');
+    params.push(category.categoryId ?? null);
+  }
+
+  const hasLocationsInput = input.locations !== undefined;
+  const hasLegacyLocationInput =
+    input.location !== undefined || input.location_lat !== undefined || input.location_lng !== undefined;
+
+  if (hasLocationsInput || hasLegacyLocationInput) {
+    const nextLocationsInput = hasLocationsInput
+      ? input.locations
+      : legacyInputToLocations({
+        location: input.location ?? existing.location ?? undefined,
+        location_lat: input.location_lat !== undefined ? input.location_lat : existing.location_lat,
+        location_lng: input.location_lng !== undefined ? input.location_lng : existing.location_lng,
+      });
+    const normalizedLocations = normalizeLocationsForInput(nextLocationsInput);
+    if (normalizedLocations.error) {
+      return { error: normalizedLocations.error };
+    }
+
+    const locations = normalizedLocations.locations ?? [];
+    const primaryLocation = getPrimaryLocation(locations);
+    setClauses.push('location = ?', 'location_lat = ?', 'location_lng = ?', 'locations = ?');
+    params.push(
+      primaryLocation?.name ?? null,
+      primaryLocation?.lat ?? null,
+      primaryLocation?.lng ?? null,
+      serializeLocations(locations)
+    );
   }
 
   if (setClauses.length === 1) {

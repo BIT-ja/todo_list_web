@@ -7,6 +7,7 @@ export interface AuthUser {
     id: number
     name: string
   }
+  is_admin: boolean
   created_at: string
 }
 

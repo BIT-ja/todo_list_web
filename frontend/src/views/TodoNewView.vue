@@ -18,7 +18,15 @@
           rows="3"
           autosize
         />
-        <LocationPicker v-model:location="form.location" v-model:lat="form.location_lat" v-model:lng="form.location_lng" />
+        <van-field
+          v-model="categoryLabel"
+          is-link
+          readonly
+          label="分类"
+          placeholder="选择分类"
+          @click="showCategoryPicker = true"
+        />
+        <TodoLocationsEditor v-model:locations="form.locations" />
         <van-field
           v-model="priorityLabel"
           is-link
@@ -58,6 +66,10 @@
       <van-picker :columns="priorityColumns" @confirm="onPriorityConfirm" @cancel="showPriorityPicker = false" />
     </van-popup>
 
+    <van-popup v-model:show="showCategoryPicker" position="bottom" round>
+      <van-picker :columns="categoryColumns" @confirm="onCategoryConfirm" @cancel="showCategoryPicker = false" />
+    </van-popup>
+
     <van-popup v-model:show="showDatePicker" position="bottom" round>
       <van-date-picker
         v-model="dateValue"
@@ -71,11 +83,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { createTodo } from '../api/todo'
+import { createTodo, type TodoLocation } from '../api/todo'
+import { getCategories, type TodoCategory } from '../api/category'
 import { showToast } from 'vant'
-import LocationPicker from '../components/LocationPicker.vue'
+import TodoLocationsEditor from '../components/TodoLocationsEditor.vue'
 import { formatEast8DateLabel, getEast8DatePickerValue, getEast8TodayDate } from '../utils/time'
 
 const router = useRouter()
@@ -83,18 +96,19 @@ const router = useRouter()
 const form = ref({
   title: '',
   content: '',
+  category_id: null as number | null,
   priority: 0,
   due_at: '',
-  location: '',
-  location_lat: null as number | null,
-  location_lng: null as number | null,
+  locations: [createEmptyLocation()],
   is_urgent: false,
   is_pinned: false,
 })
 
 const loading = ref(false)
 const showPriorityPicker = ref(false)
+const showCategoryPicker = ref(false)
 const showDatePicker = ref(false)
+const categories = ref<TodoCategory[]>([])
 
 const priorityColumns = [
   { text: '无', value: 0 },
@@ -107,6 +121,17 @@ const priorityLabel = computed(() => {
   return priorityColumns.find((p) => p.value === form.value.priority)?.text || '无'
 })
 
+const categoryColumns = computed(() => {
+  return categories.value.map((category) => ({
+    text: category.name,
+    value: category.id,
+  }))
+})
+
+const categoryLabel = computed(() => {
+  return categories.value.find((category) => category.id === form.value.category_id)?.name || ''
+})
+
 const dueAtLabel = computed(() => {
   if (!form.value.due_at) return ''
   return formatEast8DateLabel(form.value.due_at)
@@ -114,9 +139,33 @@ const dueAtLabel = computed(() => {
 
 const dateValue = ref<string[]>(getEast8DatePickerValue())
 
+function createEmptyLocation(): TodoLocation {
+  return {
+    name: '',
+    lat: null,
+    lng: null,
+  }
+}
+
+function getSelectedLocations() {
+  return form.value.locations
+    .map((location) => ({
+      name: location.name.trim(),
+      lat: location.lat,
+      lng: location.lng,
+    }))
+    .filter((location) => location.name)
+    .slice(0, 5)
+}
+
 function onPriorityConfirm({ selectedValues }: { selectedValues: number[] }) {
   form.value.priority = selectedValues[0]
   showPriorityPicker.value = false
+}
+
+function onCategoryConfirm({ selectedValues }: { selectedValues: number[] }) {
+  form.value.category_id = selectedValues[0] ?? null
+  showCategoryPicker.value = false
 }
 
 function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
@@ -128,14 +177,18 @@ function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
 async function handleSubmit() {
   loading.value = true
   try {
+    const locations = getSelectedLocations()
+    const primaryLocation = locations[0]
     await createTodo({
       title: form.value.title,
       content: form.value.content || undefined,
+      category_id: form.value.category_id,
       priority: form.value.priority || undefined,
       due_at: form.value.due_at || undefined,
-      location: form.value.location || undefined,
-      location_lat: form.value.location_lat,
-      location_lng: form.value.location_lng,
+      location: primaryLocation?.name,
+      location_lat: primaryLocation?.lat ?? null,
+      location_lng: primaryLocation?.lng ?? null,
+      locations,
       is_urgent: form.value.is_urgent ? 1 : 0,
       is_pinned: form.value.is_pinned ? 1 : 0,
     })
@@ -147,6 +200,21 @@ async function handleSubmit() {
     loading.value = false
   }
 }
+
+async function fetchCategories() {
+  try {
+    categories.value = await getCategories()
+    if (form.value.category_id == null) {
+      form.value.category_id = categories.value.find((category) => category.name === '其他')?.id ?? categories.value[0]?.id ?? null
+    }
+  } catch {
+    // handled by interceptor
+  }
+}
+
+onMounted(() => {
+  fetchCategories()
+})
 </script>
 
 <style scoped>

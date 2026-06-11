@@ -28,6 +28,14 @@
             label="创建人"
             readonly
           />
+          <van-field
+            v-model="categoryLabel"
+            is-link
+            readonly
+            label="分类"
+            placeholder="选择分类"
+            @click="showCategoryPicker = true"
+          />
           <div v-if="contentLinks.length" class="link-preview">
             <a
               v-for="link in contentLinks"
@@ -41,7 +49,7 @@
               <span>{{ link }}</span>
             </a>
           </div>
-          <LocationPicker v-model:location="form.location" v-model:lat="form.location_lat" v-model:lng="form.location_lng" />
+          <TodoLocationsEditor v-model:locations="form.locations" />
           <van-field
             v-model="priorityLabel"
             is-link
@@ -133,6 +141,10 @@
       <van-picker :columns="priorityColumns" @confirm="onPriorityConfirm" @cancel="showPriorityPicker = false" />
     </van-popup>
 
+    <van-popup v-model:show="showCategoryPicker" position="bottom" round>
+      <van-picker :columns="categoryColumns" @confirm="onCategoryConfirm" @cancel="showCategoryPicker = false" />
+    </van-popup>
+
     <van-popup v-model:show="showDatePicker" position="bottom" round>
       <van-date-picker
         v-model="dateValue"
@@ -154,11 +166,13 @@ import {
   deleteTodo,
   getTodoComments,
   addTodoComment,
+  type TodoLocation,
   type TodoComment,
 } from '../api/todo'
+import { getCategories, type TodoCategory } from '../api/category'
 import { showDialog, showToast } from 'vant'
 import TodoEmpty from '../components/TodoEmpty.vue'
-import LocationPicker from '../components/LocationPicker.vue'
+import TodoLocationsEditor from '../components/TodoLocationsEditor.vue'
 import { formatEast8DateLabel, formatEast8DateTime, getEast8DatePickerValue, getEast8TodayDate } from '../utils/time'
 import { useUserStore } from '../stores/user'
 import { getToken } from '../utils/token'
@@ -170,11 +184,10 @@ const userStore = useUserStore()
 const form = ref({
   title: '',
   content: '',
+  category_id: null as number | null,
   priority: 0,
   due_at: '',
-  location: '',
-  location_lat: null as number | null,
-  location_lng: null as number | null,
+  locations: [createEmptyLocation()],
   is_urgent: false,
   is_pinned: false,
 })
@@ -187,7 +200,9 @@ const commentSaving = ref(false)
 const creatorUsername = ref('')
 const notFound = ref(false)
 const showPriorityPicker = ref(false)
+const showCategoryPicker = ref(false)
 const showDatePicker = ref(false)
+const categories = ref<TodoCategory[]>([])
 
 const priorityColumns = [
   { text: '无', value: 0 },
@@ -200,6 +215,17 @@ const priorityLabel = computed(() => {
   return priorityColumns.find((p) => p.value === form.value.priority)?.text || '无'
 })
 
+const categoryColumns = computed(() => {
+  return categories.value.map((category) => ({
+    text: category.name,
+    value: category.id,
+  }))
+})
+
+const categoryLabel = computed(() => {
+  return categories.value.find((category) => category.id === form.value.category_id)?.name || ''
+})
+
 const dueAtLabel = computed(() => {
   if (!form.value.due_at) return ''
   return formatEast8DateLabel(form.value.due_at)
@@ -209,6 +235,45 @@ const contentLinks = computed(() => extractUrls(form.value.content))
 const currentUserId = computed(() => userStore.userId ?? getTokenUserId())
 
 const dateValue = ref<string[]>(getEast8DatePickerValue())
+
+function createEmptyLocation(): TodoLocation {
+  return {
+    name: '',
+    lat: null,
+    lng: null,
+  }
+}
+
+function getTodoLocations(todo: { locations?: TodoLocation[]; location: string | null; location_lat: number | null; location_lng: number | null }) {
+  if (todo.locations?.length) {
+    return todo.locations.slice(0, 5).map((location) => ({
+      name: location.name,
+      lat: location.lat,
+      lng: location.lng,
+    }))
+  }
+
+  if (todo.location) {
+    return [{
+      name: todo.location,
+      lat: todo.location_lat,
+      lng: todo.location_lng,
+    }]
+  }
+
+  return [createEmptyLocation()]
+}
+
+function getSelectedLocations() {
+  return form.value.locations
+    .map((location) => ({
+      name: location.name.trim(),
+      lat: location.lat,
+      lng: location.lng,
+    }))
+    .filter((location) => location.name)
+    .slice(0, 5)
+}
 
 function extractUrls(text: string) {
   return Array.from(new Set(text.match(/https?:\/\/[^\s]+/g) || []))
@@ -237,6 +302,11 @@ function parseTextLinks(text: string) {
 function onPriorityConfirm({ selectedValues }: { selectedValues: number[] }) {
   form.value.priority = selectedValues[0]
   showPriorityPicker.value = false
+}
+
+function onCategoryConfirm({ selectedValues }: { selectedValues: number[] }) {
+  form.value.category_id = selectedValues[0] ?? null
+  showCategoryPicker.value = false
 }
 
 function onDateConfirm({ selectedValues }: { selectedValues: string[] }) {
@@ -282,11 +352,10 @@ async function fetchTodo() {
     creatorUsername.value = todo.creator_username
     form.value.title = todo.title
     form.value.content = todo.content
+    form.value.category_id = todo.category_id
     form.value.priority = todo.priority
     form.value.due_at = todo.due_at || ''
-    form.value.location = todo.location || ''
-    form.value.location_lat = todo.location_lat
-    form.value.location_lng = todo.location_lng
+    form.value.locations = getTodoLocations(todo)
     form.value.is_urgent = Boolean(todo.is_urgent)
     form.value.is_pinned = Boolean(todo.is_pinned)
     if (todo.due_at) {
@@ -312,14 +381,18 @@ async function handleSubmit() {
   loading.value = true
   try {
     const id = Number(route.params.id)
+    const locations = getSelectedLocations()
+    const primaryLocation = locations[0]
     await updateTodo(id, {
       title: form.value.title,
       content: form.value.content,
+      category_id: form.value.category_id,
       priority: form.value.priority,
       due_at: form.value.due_at || undefined,
-      location: form.value.location || undefined,
-      location_lat: form.value.location_lat,
-      location_lng: form.value.location_lng,
+      location: primaryLocation?.name,
+      location_lat: primaryLocation?.lat ?? null,
+      location_lng: primaryLocation?.lng ?? null,
+      locations,
       is_urgent: form.value.is_urgent ? 1 : 0,
       is_pinned: form.value.is_pinned ? 1 : 0,
     })
@@ -329,6 +402,14 @@ async function handleSubmit() {
     // handled by interceptor
   } finally {
     loading.value = false
+  }
+}
+
+async function fetchCategories() {
+  try {
+    categories.value = await getCategories()
+  } catch {
+    // handled by interceptor
   }
 }
 
@@ -368,6 +449,7 @@ onMounted(async () => {
   if (userStore.userId == null) {
     await userStore.fetchUser()
   }
+  fetchCategories()
   fetchTodo()
   fetchComments()
 })

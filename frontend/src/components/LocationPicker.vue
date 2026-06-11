@@ -1,10 +1,10 @@
 <template>
   <van-field
     :model-value="displayLocation"
-    label="地点"
+    :label="label"
     is-link
     readonly
-    placeholder="在地图上选择地点"
+    :placeholder="placeholder"
     @click="openPicker"
   />
 
@@ -79,11 +79,16 @@ interface PoiOption {
   lat: number
 }
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   location: string
   lat?: number | null
   lng?: number | null
-}>()
+  label?: string
+  placeholder?: string
+}>(), {
+  label: '地点',
+  placeholder: '在地图上选择地点',
+})
 
 const emit = defineEmits<{
   'update:location': [value: string]

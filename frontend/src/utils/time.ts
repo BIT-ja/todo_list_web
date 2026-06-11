@@ -66,3 +66,9 @@ export function isEast8BeforeNow(value: string) {
   const timestamp = parseEast8Timestamp(value)
   return Number.isFinite(timestamp) && timestamp < Date.now()
 }
+
+export function getEast8DaysUntil(value: string) {
+  const timestamp = parseEast8Timestamp(value)
+  if (!Number.isFinite(timestamp)) return Number.NaN
+  return (timestamp - Date.now()) / (24 * 60 * 60 * 1000)
+}

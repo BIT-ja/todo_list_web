@@ -4,6 +4,10 @@ export interface TodoItem {
   id: number
   user_id: number
   creator_username: string
+  category_id: number | null
+  category_name: string | null
+  category_icon: string | null
+  category_color: string | null
   title: string
   content: string
   status: 'active' | 'completed'
@@ -14,11 +18,18 @@ export interface TodoItem {
   location: string | null
   location_lat: number | null
   location_lng: number | null
+  locations: TodoLocation[]
   is_urgent: number
   is_pinned: number
   created_at: string
   updated_at: string
   deleted_at: string | null
+}
+
+export interface TodoLocation {
+  name: string
+  lat: number | null
+  lng: number | null
 }
 
 export interface TodoComment {
@@ -38,11 +49,14 @@ export interface TodoListResult {
 export interface TodoPayload {
   title?: string
   content?: string
+  category_id?: number | null
   priority?: number
   due_at?: string
   location?: string
   location_lat?: number | null
   location_lng?: number | null
+  locations?: TodoLocation[]
+  sort_order?: number
   is_urgent?: number
   is_pinned?: number
 }

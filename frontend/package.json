@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@amap/amap-jsapi-loader": "^1.0.1",
+    "@lucide/vue": "^1.17.0",
     "axios": "^1.16.1",
     "pinia": "^3.0.4",
     "vant": "^4.9.24",

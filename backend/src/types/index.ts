@@ -20,13 +20,28 @@ export interface PublicUser {
     id: number;
     name: string;
   };
+  is_admin: boolean;
   created_at: string;
+}
+
+export interface TodoCategory {
+  id: number;
+  organization_id: number;
+  name: string;
+  icon: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Todo {
   id: number;
   user_id: number;
   creator_username: string;
+  category_id: number | null;
+  category_name: string | null;
+  category_icon: string | null;
+  category_color: string | null;
   title: string;
   content: string;
   status: 'active' | 'completed';
@@ -37,11 +52,18 @@ export interface Todo {
   location: string | null;
   location_lat: number | null;
   location_lng: number | null;
+  locations: TodoLocation[];
   is_urgent: number;
   is_pinned: number;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+}
+
+export interface TodoLocation {
+  name: string;
+  lat: number | null;
+  lng: number | null;
 }
 
 export interface Comment {
@@ -79,11 +101,13 @@ export interface ListResult<T> {
 export interface CreateTodoInput {
   title: string;
   content?: string;
+  category_id?: number | null;
   priority?: number;
   due_at?: string;
   location?: string;
-  location_lat?: number;
-  location_lng?: number;
+  location_lat?: number | null;
+  location_lng?: number | null;
+  locations?: TodoLocation[];
   is_urgent?: number;
   is_pinned?: number;
 }
@@ -91,12 +115,14 @@ export interface CreateTodoInput {
 export interface UpdateTodoInput {
   title?: string;
   content?: string;
+  category_id?: number | null;
   priority?: number;
   due_at?: string;
   sort_order?: number;
   location?: string;
-  location_lat?: number;
-  location_lng?: number;
+  location_lat?: number | null;
+  location_lng?: number | null;
+  locations?: TodoLocation[];
   is_urgent?: number;
   is_pinned?: number;
 }

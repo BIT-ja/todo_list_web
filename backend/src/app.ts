@@ -5,6 +5,7 @@ import jwt from '@fastify/jwt';
 import { initDatabase } from './db/init.js';
 import { authRoutes } from './routes/auth.js';
 import { todoRoutes } from './routes/todo.js';
+import { categoryRoutes } from './routes/category.js';
 import { healthRoutes } from './routes/health.js';
 import { error } from './utils/response.js';
 
@@ -51,6 +52,7 @@ export async function buildApp() {
 
   app.register(authRoutes, { prefix: '/api/auth' });
   app.register(todoRoutes, { prefix: '/api/todos' });
+  app.register(categoryRoutes, { prefix: '/api/categories' });
   app.register(healthRoutes, { prefix: '/api' });
 
   return app;

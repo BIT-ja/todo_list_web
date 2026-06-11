@@ -4,6 +4,7 @@ import type { PublicUser, User } from '../types/index.js';
 import { nowInEast8 } from '../utils/time.js';
 
 const SALT_ROUNDS = 10;
+const ADMIN_USERNAME = 'facai';
 
 interface PublicUserRow {
   id: number;
@@ -32,6 +33,7 @@ function toPublicUser(row: PublicUserRow): PublicUser {
       id: row.organization_id,
       name: row.organization_name,
     },
+    is_admin: row.username === ADMIN_USERNAME,
     created_at: row.created_at,
   };
 }
@@ -95,4 +97,9 @@ export function login(username: string, password: string): { user?: PublicUser; 
 export function getUserById(id: number): PublicUser | null {
   const row = db.prepare(`${publicUserSelect} WHERE users.id = ?`).get(id) as PublicUserRow | undefined;
   return row ? toPublicUser(row) : null;
+}
+
+export function isAdminUser(id: number): boolean {
+  const row = db.prepare('SELECT username FROM users WHERE id = ?').get(id) as Pick<User, 'username'> | undefined;
+  return row?.username === ADMIN_USERNAME;
 }

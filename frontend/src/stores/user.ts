@@ -8,6 +8,7 @@ export const useUserStore = defineStore('user', () => {
   const username = ref<string | null>(null)
   const organizationId = ref<number | null>(null)
   const organizationName = ref<string | null>(null)
+  const isAdmin = ref(false)
   const isLoggedIn = ref(!!getToken())
 
   async function login(user: string, password: string) {
@@ -17,6 +18,7 @@ export const useUserStore = defineStore('user', () => {
     username.value = res.user.username
     organizationId.value = res.user.organization.id
     organizationName.value = res.user.organization.name
+    isAdmin.value = res.user.is_admin
     isLoggedIn.value = true
   }
 
@@ -27,6 +29,7 @@ export const useUserStore = defineStore('user', () => {
     username.value = res.user.username
     organizationId.value = res.user.organization.id
     organizationName.value = res.user.organization.name
+    isAdmin.value = res.user.is_admin
     isLoggedIn.value = true
   }
 
@@ -38,6 +41,7 @@ export const useUserStore = defineStore('user', () => {
       username.value = user.username
       organizationId.value = user.organization.id
       organizationName.value = user.organization.name
+      isAdmin.value = user.is_admin
       isLoggedIn.value = true
     } catch {
       logout()
@@ -50,6 +54,7 @@ export const useUserStore = defineStore('user', () => {
     username.value = null
     organizationId.value = null
     organizationName.value = null
+    isAdmin.value = false
     isLoggedIn.value = false
   }
 
@@ -58,6 +63,7 @@ export const useUserStore = defineStore('user', () => {
     username,
     organizationId,
     organizationName,
+    isAdmin,
     isLoggedIn,
     login,
     register,
