@@ -105,6 +105,8 @@ const DEFAULT_LOCATION: PoiOption = {
   lng: 120.15515,
   lat: 30.27415,
 }
+const HANGZHOU_TIP_CITY = { name: '杭州市', adcode: '330100' }
+const TIP_CITY_SEARCH_LIMIT = 5
 
 const showPicker = ref(false)
 const mapEl = ref<HTMLDivElement | null>(null)
@@ -231,11 +233,11 @@ function searchPlaces() {
 }
 
 async function searchFromTipCities(term: string, cityList: any[], requestId: number) {
-  for (const city of cityList.slice(0, 5)) {
-    const cityCode = city?.adcode || city?.citycode || city?.name
+  for (const city of prioritizeTipCities(cityList).slice(0, TIP_CITY_SEARCH_LIMIT)) {
+    const cityCode = getCitySearchKey(city)
     if (!cityCode) continue
 
-    const pois = await searchPlacesInCity(term, String(cityCode))
+    const pois = await searchPlacesInCity(term, cityCode)
     if (requestId !== searchRequestId) return
     if (pois.length) {
       searchResults.value = pois
@@ -332,6 +334,36 @@ function normalizeTipCities(result: any): any[] {
     return result.suggestion.cities
   }
   return []
+}
+
+function prioritizeTipCities(cityList: any[]): any[] {
+  const seen = new Set<string>()
+  const results: any[] = []
+
+  for (const city of [HANGZHOU_TIP_CITY, ...cityList]) {
+    const key = getCitySearchKey(city)
+    if (!key) continue
+
+    const identity = getCityIdentity(city)
+    if (seen.has(identity)) continue
+    seen.add(identity)
+    results.push(city)
+  }
+
+  return results
+}
+
+function getCitySearchKey(city: any): string {
+  return String(city?.adcode || city?.citycode || city?.name || (typeof city === 'string' ? city : '')).trim()
+}
+
+function getCityIdentity(city: any): string {
+  const searchKey = getCitySearchKey(city)
+  const cityName = String(city?.name || (typeof city === 'string' ? city : '')).replace(/市$/, '')
+  if (searchKey === '330100' || cityName === '杭州') {
+    return 'hangzhou'
+  }
+  return searchKey || cityName
 }
 
 function normalizePoint(location: any): { lng: number; lat: number } | null {
