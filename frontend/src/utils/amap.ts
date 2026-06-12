@@ -53,13 +53,5 @@ export function openAmapNavigation(destination: { lng: number; lat: number; name
     return
   }
 
-  const startedAt = Date.now()
   window.location.href = nativeUrl
-
-  window.setTimeout(() => {
-    const likelyStillHere = document.visibilityState === 'visible' && Date.now() - startedAt < 2200
-    if (likelyStillHere) {
-      window.location.href = webUrl
-    }
-  }, 1500)
 }
