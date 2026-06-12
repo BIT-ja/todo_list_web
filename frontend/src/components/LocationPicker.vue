@@ -122,7 +122,9 @@ let map: any
 let marker: any
 let geocoder: any
 let placeSearch: any
+let autoComplete: any
 let geolocation: any
+let searchRequestId = 0
 
 const displayLocation = computed(() => props.location || '')
 
@@ -150,7 +152,7 @@ async function initMap() {
       AMap = await load({
         key: amapKey,
         version: '2.0',
-        plugins: ['AMap.PlaceSearch', 'AMap.Geocoder', 'AMap.Geolocation'],
+        plugins: ['AMap.PlaceSearch', 'AMap.AutoComplete', 'AMap.Geocoder', 'AMap.Geolocation'],
       })
     }
 
@@ -163,6 +165,7 @@ async function initMap() {
       })
       geocoder = new AMap.Geocoder()
       placeSearch = new AMap.PlaceSearch({ city: '全国', pageSize: 10, pageIndex: 1 })
+      autoComplete = new AMap.AutoComplete({ city: '全国' })
       geolocation = new AMap.Geolocation({
         enableHighAccuracy: true,
         timeout: 10000,
@@ -206,26 +209,72 @@ function searchPlaces() {
     return
   }
 
+  const requestId = ++searchRequestId
   placeSearch.search(term, (status: string, result: any) => {
-    if (status !== 'complete' || !result?.poiList?.pois?.length) {
-      searchResults.value = []
-      showToast(getPlaceSearchErrorMessage(result))
+    if (requestId !== searchRequestId) return
+
+    const pois = normalizePois(result?.poiList?.pois)
+    if (status === 'complete' && pois.length) {
+      searchResults.value = pois
       return
     }
 
-    searchResults.value = result.poiList.pois
-      .map((poi: any) => {
-        const lng = Number(poi.location?.lng ?? poi.location?.getLng?.())
-        const lat = Number(poi.location?.lat ?? poi.location?.getLat?.())
-        return {
-          id: poi.id,
-          name: poi.name,
-          address: normalizeAddress(poi.address),
-          lng,
-          lat,
-        }
-      })
-      .filter((poi: PoiOption) => Number.isFinite(poi.lng) && Number.isFinite(poi.lat))
+    if (result?.info === 'TIP_CITIES' && Array.isArray(result.cityList) && result.cityList.length) {
+      searchResults.value = []
+      searchFromTipCities(term, result.cityList, requestId)
+      return
+    }
+
+    searchWithAutoComplete(term, requestId, getPlaceSearchErrorMessage(result))
+  })
+}
+
+async function searchFromTipCities(term: string, cityList: any[], requestId: number) {
+  for (const city of cityList.slice(0, 5)) {
+    const cityCode = city?.adcode || city?.citycode || city?.name
+    if (!cityCode) continue
+
+    const pois = await searchPlacesInCity(term, String(cityCode))
+    if (requestId !== searchRequestId) return
+    if (pois.length) {
+      searchResults.value = pois
+      return
+    }
+  }
+
+  searchWithAutoComplete(term, requestId, '请补充城市名后再搜索')
+}
+
+function searchPlacesInCity(term: string, city: string): Promise<PoiOption[]> {
+  return new Promise((resolve) => {
+    const scopedSearch = new AMap.PlaceSearch({ city, pageSize: 10, pageIndex: 1 })
+    scopedSearch.search(term, (status: string, result: any) => {
+      if (status !== 'complete') {
+        resolve([])
+        return
+      }
+      resolve(normalizePois(result?.poiList?.pois))
+    })
+  })
+}
+
+function searchWithAutoComplete(term: string, requestId: number, fallbackMessage: string) {
+  if (!autoComplete) {
+    showToast(fallbackMessage)
+    return
+  }
+
+  autoComplete.search(term, (status: string, result: any) => {
+    if (requestId !== searchRequestId) return
+
+    const tips = normalizeTips(result?.tips)
+    if (status === 'complete' && tips.length) {
+      searchResults.value = tips
+      return
+    }
+
+    searchResults.value = []
+    showToast(fallbackMessage)
   })
 }
 
@@ -234,6 +283,56 @@ function getPlaceSearchErrorMessage(result: any) {
     return '地图搜索鉴权失败，请检查高德安全密钥'
   }
   return result?.info || '未找到相关地点'
+}
+
+function normalizePois(pois: unknown): PoiOption[] {
+  const results: PoiOption[] = []
+  if (!Array.isArray(pois)) return results
+
+  for (const poi of pois) {
+    const point = normalizePoint(poi.location)
+    if (!point || !poi.name) continue
+    results.push({
+      id: poi.id,
+      name: poi.name,
+      address: normalizeAddress(poi.address),
+      lng: point.lng,
+      lat: point.lat,
+    })
+  }
+
+  return results
+}
+
+function normalizeTips(tips: unknown): PoiOption[] {
+  const results: PoiOption[] = []
+  if (!Array.isArray(tips)) return results
+
+  for (const tip of tips) {
+    const point = normalizePoint(tip.location)
+    if (!point || !tip.name) continue
+    results.push({
+      id: tip.id,
+      name: tip.name,
+      address: normalizeAddress(tip.district || tip.address),
+      lng: point.lng,
+      lat: point.lat,
+    })
+  }
+
+  return results
+}
+
+function normalizePoint(location: any): { lng: number; lat: number } | null {
+  if (!location) return null
+
+  const stringParts = typeof location === 'string' ? location.split(',') : []
+  const lng = Number(location.lng ?? location.getLng?.() ?? location[0] ?? stringParts[0])
+  const lat = Number(location.lat ?? location.getLat?.() ?? location[1] ?? stringParts[1])
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+    return null
+  }
+  return { lng, lat }
 }
 
 function selectPoi(poi: PoiOption) {
