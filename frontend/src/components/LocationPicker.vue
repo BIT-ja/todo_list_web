@@ -96,8 +96,8 @@ const emit = defineEmits<{
   'update:lng': [value: number | null]
 }>()
 
-const amapKey = import.meta.env.VITE_AMAP_KEY || ''
-const amapSecurityJsCode = import.meta.env.VITE_AMAP_SECURITY_JS_CODE || ''
+const amapKey = (import.meta.env.VITE_AMAP_KEY || '').trim()
+const amapSecurityJsCode = (import.meta.env.VITE_AMAP_SECURITY_JS_CODE || '').trim()
 
 const DEFAULT_LOCATION: PoiOption = {
   name: '杭州市',
@@ -209,7 +209,7 @@ function searchPlaces() {
   placeSearch.search(term, (status: string, result: any) => {
     if (status !== 'complete' || !result?.poiList?.pois?.length) {
       searchResults.value = []
-      showToast('未找到相关地点')
+      showToast(getPlaceSearchErrorMessage(result))
       return
     }
 
@@ -227,6 +227,13 @@ function searchPlaces() {
       })
       .filter((poi: PoiOption) => Number.isFinite(poi.lng) && Number.isFinite(poi.lat))
   })
+}
+
+function getPlaceSearchErrorMessage(result: any) {
+  if (result?.info === 'INVALID_USER_SCODE' || result?.infocode === '10008') {
+    return '地图搜索鉴权失败，请检查高德安全密钥'
+  }
+  return result?.info || '未找到相关地点'
 }
 
 function selectPoi(poi: PoiOption) {
