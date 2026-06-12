@@ -219,9 +219,10 @@ function searchPlaces() {
       return
     }
 
-    if (result?.info === 'TIP_CITIES' && Array.isArray(result.cityList) && result.cityList.length) {
+    const tipCities = normalizeTipCities(result)
+    if (tipCities.length) {
       searchResults.value = []
-      searchFromTipCities(term, result.cityList, requestId)
+      searchFromTipCities(term, tipCities, requestId)
       return
     }
 
@@ -321,6 +322,16 @@ function normalizeTips(tips: unknown): PoiOption[] {
   }
 
   return results
+}
+
+function normalizeTipCities(result: any): any[] {
+  if (Array.isArray(result?.cityList) && result.cityList.length) {
+    return result.cityList
+  }
+  if (Array.isArray(result?.suggestion?.cities) && result.suggestion.cities.length) {
+    return result.suggestion.cities
+  }
+  return []
 }
 
 function normalizePoint(location: any): { lng: number; lat: number } | null {
