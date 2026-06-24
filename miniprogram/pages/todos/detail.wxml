@@ -1,0 +1,78 @@
+<view class="page detail-page">
+  <view wx:if="{{loading}}" class="empty-state">加载中...</view>
+
+  <block wx:else>
+    <view class="detail-card card">
+      <view class="detail-header">
+        <view class="category-icon" style="background: {{todo.category_color || '#7d8da6'}};">{{todo.categoryGlyph}}</view>
+        <view class="header-main">
+          <view class="title-row">
+            <view class="todo-title">{{todo.title}}</view>
+            <view wx:if="{{todo.is_pinned}}" class="mini-tag pin-tag">置顶</view>
+            <view wx:if="{{todo.is_urgent}}" class="mini-tag urgent-tag">加急</view>
+          </view>
+          <view class="creator">创建人：{{todo.creator_username || '-'}}</view>
+        </view>
+      </view>
+
+      <view wx:if="{{todo.content}}" class="content">{{todo.content}}</view>
+
+      <view wx:if="{{contentLinks.length}}" class="link-list">
+        <view wx:for="{{contentLinks}}" wx:key="*this" class="link-item" data-link="{{item}}" bindtap="copyLink">{{item}}</view>
+      </view>
+
+      <view class="meta-grid">
+        <view class="meta-item">
+          <view class="meta-label">分类</view>
+          <view class="meta-value">{{todo.category_name || '其他'}}</view>
+        </view>
+        <view class="meta-item">
+          <view class="meta-label">优先级</view>
+          <view class="meta-value">{{todo.priorityLabel}}</view>
+        </view>
+        <view class="meta-item">
+          <view class="meta-label">状态</view>
+          <view class="meta-value">{{todo.status === 'completed' ? '已完成' : '未完成'}}</view>
+        </view>
+        <view class="meta-item">
+          <view class="meta-label">截止</view>
+          <view class="meta-value due-{{todo.dueLevel}}">{{todo.dueLabel || '-'}}</view>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{locations.length}}" class="card location-card">
+      <view class="section-title">地点</view>
+      <view wx:for="{{locations}}" wx:key="index" class="location-row">
+        <view class="location-index">{{index + 1}}</view>
+        <view class="location-name">{{item.name}}</view>
+        <button wx:if="{{index === 0}}" class="nav-button" data-index="{{index}}" bindtap="openNavigation">导航</button>
+      </view>
+    </view>
+
+    <view class="action-grid">
+      <button class="plain-button" bindtap="toggleComplete">{{todo.status === 'active' ? '标记完成' : '恢复未完成'}}</button>
+      <button class="plain-button" bindtap="togglePin">{{todo.is_pinned ? '取消置顶' : '置顶'}}</button>
+      <button class="plain-button" bindtap="toggleUrgent">{{todo.is_urgent ? '取消加急' : '加急'}}</button>
+      <button class="plain-button" bindtap="goEdit">编辑</button>
+    </view>
+
+    <view class="comments-card card">
+      <view class="section-title">评论</view>
+      <view wx:if="{{!comments.length}}" class="comments-empty">暂无评论</view>
+      <view wx:else class="comment-list">
+        <view wx:for="{{comments}}" wx:key="id" class="comment-item {{item.isMine ? 'comment-item--mine' : ''}}">
+          <view class="comment-avatar">{{item.avatar}}</view>
+          <view class="comment-bubble">
+            <view class="comment-content">{{item.content}}</view>
+            <view class="comment-footer">{{item.username}} · {{item.createdLabel}}</view>
+          </view>
+        </view>
+      </view>
+      <view class="comment-editor">
+        <textarea value="{{commentText}}" maxlength="500" placeholder="添加评论，支持 URL" bindinput="onCommentInput" />
+        <button class="primary-button comment-button" loading="{{commentSaving}}" bindtap="submitComment">发表评论</button>
+      </view>
+    </view>
+  </block>
+</view>

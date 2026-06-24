@@ -9,6 +9,7 @@ export interface User {
   id: number;
   username: string;
   password_hash: string;
+  wechat_openid: string | null;
   organization_id: number;
   created_at: string;
 }

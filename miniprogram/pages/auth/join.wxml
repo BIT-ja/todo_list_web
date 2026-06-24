@@ -1,0 +1,18 @@
+<view class="page auth-form-page">
+  <view class="title">加入组织</view>
+  <view class="subtitle">首次使用需要填写用户名和组织邀请码，提交后会绑定当前微信。</view>
+
+  <view class="field-card">
+    <view class="field-row">
+      <view class="field-label">用户名</view>
+      <input class="field-input" value="{{username}}" maxlength="20" placeholder="2-20 个字符" bindinput="onUsernameInput" />
+    </view>
+    <view class="field-row">
+      <view class="field-label">邀请码</view>
+      <input class="field-input" value="{{inviteCode}}" placeholder="请输入组织邀请码" bindinput="onInviteCodeInput" />
+    </view>
+  </view>
+
+  <button class="primary-button submit-button" loading="{{loading}}" bindtap="handleSubmit">微信登录并加入</button>
+  <button class="plain-button" bindtap="goBind">已有账号，去绑定</button>
+</view>

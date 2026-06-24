@@ -1,0 +1,21 @@
+{
+  "pages": [
+    "pages/todos/index",
+    "pages/auth/login",
+    "pages/auth/join",
+    "pages/auth/bind",
+    "pages/todos/detail",
+    "pages/todos/form",
+    "pages/profile/index",
+    "pages/admin/categories"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#f7f8fa",
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "待办事项",
+    "backgroundColor": "#f7f8fa",
+    "backgroundTextStyle": "dark"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

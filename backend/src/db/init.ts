@@ -191,6 +191,9 @@ export function initDatabase() {
     if (!existingUserColumns.has('organization_id')) {
       db.exec('ALTER TABLE users ADD COLUMN organization_id INTEGER REFERENCES organizations(id)');
     }
+    if (!existingUserColumns.has('wechat_openid')) {
+      db.exec('ALTER TABLE users ADD COLUMN wechat_openid TEXT');
+    }
 
     db.prepare('UPDATE users SET organization_id = ? WHERE organization_id IS NULL').run(defaultOrganizationId);
 
@@ -235,6 +238,7 @@ export function initDatabase() {
       CREATE INDEX IF NOT EXISTS idx_comments_todo ON comments(todo_id);
       CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
       CREATE INDEX IF NOT EXISTS idx_users_organization ON users(organization_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_wechat_openid ON users(wechat_openid);
       CREATE INDEX IF NOT EXISTS idx_todo_categories_organization ON todo_categories(organization_id);
 
       CREATE TRIGGER IF NOT EXISTS prevent_organization_invite_code_update

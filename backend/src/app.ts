@@ -24,7 +24,10 @@ export async function buildApp() {
     if (
       request.url === '/api/health' ||
       request.url === '/api/auth/register' ||
-      request.url === '/api/auth/login'
+      request.url === '/api/auth/login' ||
+      request.url === '/api/auth/wechat-login' ||
+      request.url === '/api/auth/wechat-register' ||
+      request.url === '/api/auth/wechat-bind'
     ) {
       return;
     }

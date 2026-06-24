@@ -1,0 +1,24 @@
+<view class="page profile-page">
+  <view class="profile-card card">
+    <view class="profile-avatar">{{avatarText}}</view>
+    <view class="profile-name">{{user.username || '未登录'}}</view>
+    <view class="profile-role">{{user.is_admin ? '管理员' : '组织成员'}}</view>
+  </view>
+
+  <view class="field-card">
+    <view class="field-row">
+      <view class="field-label">组织</view>
+      <view class="field-input">{{user.organization.name || '-'}}</view>
+    </view>
+    <view class="field-row">
+      <view class="field-label">账号 ID</view>
+      <view class="field-input">{{user.id || '-'}}</view>
+    </view>
+    <view wx:if="{{user.is_admin}}" class="field-row link-row" bindtap="goCategories">
+      <view class="field-label">管理后台</view>
+      <view class="field-input">分类管理 ›</view>
+    </view>
+  </view>
+
+  <button class="danger-button logout-button" bindtap="logout">退出登录</button>
+</view>

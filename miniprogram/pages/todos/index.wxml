@@ -1,0 +1,69 @@
+<view class="todo-page">
+  <view class="topbar">
+    <view>
+      <view class="title">待办事项</view>
+      <view class="subtitle">{{user.organization.name || '组织协作'}}</view>
+    </view>
+    <button class="avatar" bindtap="goProfile">{{avatarText}}</button>
+  </view>
+
+  <view class="tabs">
+    <view wx:for="{{tabs}}" wx:key="status" class="tab {{activeTab === index ? 'tab--active' : ''}}" data-index="{{index}}" bindtap="switchTab">
+      {{item.title}}
+    </view>
+  </view>
+
+  <view wx:if="{{loading && !todos.length}}" class="empty-state">加载中...</view>
+
+  <view wx:elif="{{!todos.length}}" class="empty-state">
+    <view>暂无待办事项</view>
+    <button wx:if="{{activeTab !== 1}}" class="primary-button empty-button" bindtap="goNew">新建待办</button>
+  </view>
+
+  <view wx:else class="todo-list">
+    <view
+      wx:for="{{todos}}"
+      wx:key="id"
+      class="todo-shell {{draggingId === item.id ? 'todo-shell--dragging' : ''}}"
+      data-id="{{item.id}}"
+      data-index="{{index}}"
+      bindlongpress="onLongPress"
+      catchtouchstart="onCardTouchStart"
+      catchtouchmove="onCardTouchMove"
+      catchtouchend="onCardTouchEnd"
+      catchtouchcancel="onCardTouchEnd"
+    >
+      <view class="complete-bg {{item.completeHintActive ? 'complete-bg--active' : ''}}">
+        {{item.status === 'active' ? '松手完成' : '松手恢复'}}
+      </view>
+      <view class="row-actions">
+        <button class="action action-pin" data-id="{{item.id}}" catchtap="togglePin">{{item.is_pinned ? '取消置顶' : '置顶'}}</button>
+        <button class="action action-urgent" data-id="{{item.id}}" catchtap="toggleUrgent">{{item.is_urgent ? '取消加急' : '加急'}}</button>
+        <button class="action action-delete" data-id="{{item.id}}" catchtap="deleteTodo">删除</button>
+      </view>
+
+      <view class="todo-card card" style="transform: translateX({{item.swipeX}}px);" data-id="{{item.id}}" bindtap="goDetail">
+        <view class="category-icon" style="background: {{item.category_color || '#7d8da6'}};">{{item.categoryGlyph}}</view>
+        <view class="todo-main">
+          <view class="todo-title-row">
+            <view class="todo-title {{item.status === 'completed' ? 'todo-title--done' : ''}}">{{item.title}}</view>
+            <view wx:if="{{item.is_pinned}}" class="mini-tag pin-tag">置顶</view>
+            <view wx:if="{{item.is_urgent}}" class="mini-tag urgent-tag">加急</view>
+          </view>
+          <view wx:if="{{item.content}}" class="todo-content">{{item.content}}</view>
+          <view class="todo-meta">
+            <text class="tag">{{item.category_name || '其他'}}</text>
+            <text class="tag">{{item.priorityLabel}}</text>
+            <text wx:if="{{item.dueLabel}}" class="tag due-tag due-{{item.dueLevel}}">{{item.dueLabel}}</text>
+          </view>
+          <view class="todo-footer">
+            <text>{{item.creator_username}}</text>
+            <text wx:if="{{item.locationText}}"> · {{item.locationText}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <button class="fab" bindtap="goNew">+</button>
+</view>

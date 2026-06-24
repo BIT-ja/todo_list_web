@@ -1,0 +1,44 @@
+<view class="page admin-page">
+  <view wx:if="{{!ready}}" class="empty-state">加载中...</view>
+  <view wx:elif="{{!user.is_admin}}" class="empty-state">只有管理员可以管理分类</view>
+
+  <block wx:else>
+    <view class="editor card">
+      <view class="editor-title">{{editingId ? '编辑分类' : '新增分类'}}</view>
+      <view class="input-line">
+        <view class="input-label">名称</view>
+        <input value="{{form.name}}" maxlength="12" placeholder="例如：吃喝" data-field="name" bindinput="onInput" />
+      </view>
+      <picker range="{{iconOptions}}" range-key="text" value="{{iconIndex}}" bindchange="onIconChange">
+        <view class="input-line">
+          <view class="input-label">图标</view>
+          <view class="picker-value">{{iconOptions[iconIndex].glyph}} {{iconOptions[iconIndex].text}}</view>
+        </view>
+      </picker>
+      <view class="color-row">
+        <view class="input-label">颜色</view>
+        <view class="color-list">
+          <view wx:for="{{colorOptions}}" wx:key="*this" class="color-dot {{form.color === item ? 'color-dot--active' : ''}}" style="background: {{item}};" data-color="{{item}}" bindtap="chooseColor"></view>
+        </view>
+      </view>
+      <view class="preview">
+        <view class="preview-icon" style="background: {{form.color}};">{{iconOptions[iconIndex].glyph}}</view>
+        <view>{{form.name || '分类名称'}}</view>
+      </view>
+      <button class="primary-button save-button" loading="{{saving}}" bindtap="saveCategory">保存</button>
+      <button wx:if="{{editingId}}" class="plain-button cancel-button" bindtap="cancelEdit">取消编辑</button>
+    </view>
+
+    <view class="category-list">
+      <view wx:for="{{categories}}" wx:key="id" class="category-row card">
+        <view class="category-icon" style="background: {{item.color}};">{{item.glyph}}</view>
+        <view class="category-main">
+          <view class="category-name">{{item.name}}</view>
+          <view class="category-sub">{{item.icon}}</view>
+        </view>
+        <button class="text-button" data-id="{{item.id}}" bindtap="editCategory">编辑</button>
+        <button class="text-button delete" data-id="{{item.id}}" bindtap="deleteCategory">删除</button>
+      </view>
+    </view>
+  </block>
+</view>

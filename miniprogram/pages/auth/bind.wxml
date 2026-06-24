@@ -1,0 +1,18 @@
+<view class="page auth-form-page">
+  <view class="title">绑定已有账号</view>
+  <view class="subtitle">输入当前 Web 账号密码，绑定后下次可直接微信一键登录。</view>
+
+  <view class="field-card">
+    <view class="field-row">
+      <view class="field-label">用户名</view>
+      <input class="field-input" value="{{username}}" placeholder="请输入用户名" bindinput="onUsernameInput" />
+    </view>
+    <view class="field-row">
+      <view class="field-label">密码</view>
+      <input class="field-input" value="{{password}}" password placeholder="请输入密码" bindinput="onPasswordInput" />
+    </view>
+  </view>
+
+  <button class="primary-button submit-button" loading="{{loading}}" bindtap="handleSubmit">微信登录并绑定</button>
+  <button class="plain-button" bindtap="goJoin">没有账号，去加入组织</button>
+</view>

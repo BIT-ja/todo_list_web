@@ -1,0 +1,62 @@
+<view class="page form-page">
+  <view class="form-title">{{isEdit ? '编辑待办' : '新建待办'}}</view>
+
+  <view class="field-card">
+    <view class="field-row">
+      <view class="field-label">标题</view>
+      <input class="field-input" value="{{form.title}}" maxlength="100" placeholder="待办标题（必填）" data-field="title" bindinput="onInput" />
+    </view>
+    <view class="field-row textarea-row">
+      <view class="field-label">详情</view>
+      <textarea class="textarea-input" value="{{form.content}}" placeholder="待办详情，支持粘贴 URL" data-field="content" bindinput="onInput" />
+    </view>
+    <picker range="{{categories}}" range-key="name" value="{{categoryIndex}}" bindchange="onCategoryChange">
+      <view class="field-row">
+        <view class="field-label">分类</view>
+        <view class="field-input {{categoryLabel ? '' : 'muted'}}">{{categoryLabel || '选择分类'}}</view>
+      </view>
+    </picker>
+    <picker range="{{priorityOptions}}" range-key="text" value="{{form.priority}}" bindchange="onPriorityChange">
+      <view class="field-row">
+        <view class="field-label">优先级</view>
+        <view class="field-input">{{priorityLabel}}</view>
+      </view>
+    </picker>
+    <picker mode="date" start="{{minDate}}" value="{{dateValue}}" bindchange="onDateChange">
+      <view class="field-row">
+        <view class="field-label">截止时间</view>
+        <view class="field-input {{dateLabel ? '' : 'muted'}}">{{dateLabel || '选择截止日期'}}</view>
+      </view>
+    </picker>
+    <view class="field-row">
+      <view class="field-label">加急</view>
+      <switch checked="{{form.is_urgent}}" color="#ee0a24" bindchange="onUrgentChange" />
+    </view>
+    <view class="field-row">
+      <view class="field-label">置顶</view>
+      <switch checked="{{form.is_pinned}}" color="#1989fa" bindchange="onPinnedChange" />
+    </view>
+  </view>
+
+  <view class="location-card card">
+    <view class="section-header">
+      <view>
+        <view class="section-title">地点</view>
+        <view class="section-desc">最多 5 个地点，导航默认使用第一个</view>
+      </view>
+      <button class="small-button" bindtap="addLocation" disabled="{{locations.length >= 5}}">增加</button>
+    </view>
+
+    <view wx:for="{{locations}}" wx:key="index" class="location-row">
+      <view class="location-index">{{index + 1}}</view>
+      <view class="location-main" data-index="{{index}}" bindtap="chooseLocation">
+        <view class="location-name {{item.name ? '' : 'muted'}}">{{item.name || '点击选择地点'}}</view>
+        <view wx:if="{{item.lat !== null && item.lng !== null}}" class="location-coordinate">{{item.lat}}, {{item.lng}}</view>
+      </view>
+      <button wx:if="{{locations.length > 1}}" class="remove-button" data-index="{{index}}" bindtap="removeLocation">删除</button>
+    </view>
+  </view>
+
+  <button class="primary-button submit-button" loading="{{saving}}" bindtap="handleSave">保存</button>
+  <button wx:if="{{isEdit}}" class="danger-button delete-button" bindtap="handleDelete">删除待办</button>
+</view>

@@ -1,0 +1,106 @@
+.form-page {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 42rpx);
+}
+
+.form-title {
+  padding: 12rpx 4rpx 8rpx;
+  color: #1f2933;
+  font-size: 40rpx;
+  font-weight: 800;
+}
+
+.location-card {
+  margin-top: 20rpx;
+  padding: 24rpx;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18rpx;
+}
+
+.section-title {
+  color: #323233;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.section-desc {
+  margin-top: 4rpx;
+  color: #969799;
+  font-size: 24rpx;
+}
+
+.small-button {
+  width: 120rpx;
+  height: 56rpx;
+  padding: 0;
+  border: 0;
+  border-radius: 999rpx;
+  color: #fff;
+  font-size: 24rpx;
+  line-height: 56rpx;
+  background: #1989fa;
+}
+
+.location-row {
+  display: flex;
+  align-items: center;
+  min-height: 88rpx;
+  padding: 16rpx 0;
+  border-top: 1rpx solid #f0f2f5;
+}
+
+.location-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48rpx;
+  height: 48rpx;
+  margin-right: 18rpx;
+  border-radius: 50%;
+  color: #1989fa;
+  font-size: 24rpx;
+  font-weight: 700;
+  background: #edf5ff;
+}
+
+.location-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.location-name {
+  overflow: hidden;
+  color: #323233;
+  font-size: 28rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.location-coordinate {
+  margin-top: 6rpx;
+  color: #969799;
+  font-size: 22rpx;
+}
+
+.remove-button {
+  width: 92rpx;
+  height: 52rpx;
+  padding: 0;
+  border: 0;
+  color: #ee0a24;
+  font-size: 24rpx;
+  line-height: 52rpx;
+  background: transparent;
+}
+
+.submit-button {
+  margin-top: 36rpx;
+}
+
+.delete-button {
+  margin-top: 20rpx;
+}

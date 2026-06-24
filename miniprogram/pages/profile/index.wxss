@@ -1,0 +1,43 @@
+.profile-page {
+  padding-top: 34rpx;
+}
+
+.profile-card {
+  padding: 48rpx 28rpx;
+  text-align: center;
+}
+
+.profile-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 44rpx;
+  color: #fff;
+  font-size: 52rpx;
+  font-weight: 800;
+  background: linear-gradient(135deg, #1989fa, #7b61ff);
+}
+
+.profile-name {
+  margin-top: 24rpx;
+  color: #1f2933;
+  font-size: 40rpx;
+  font-weight: 800;
+}
+
+.profile-role {
+  margin-top: 8rpx;
+  color: #969799;
+  font-size: 26rpx;
+}
+
+.link-row .field-input {
+  color: #1989fa;
+  text-align: right;
+}
+
+.logout-button {
+  margin-top: 36rpx;
+}

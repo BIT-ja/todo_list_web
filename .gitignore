@@ -8,3 +8,5 @@ data/
 *.db-shm
 .env
 *.log
+miniprogram/project.private.config.json
+miniprogram/miniprogram_npm/

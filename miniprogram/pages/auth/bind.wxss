@@ -1,0 +1,21 @@
+.auth-form-page {
+  padding-top: 72rpx;
+}
+
+.title {
+  color: #1f2933;
+  font-size: 44rpx;
+  font-weight: 800;
+}
+
+.subtitle {
+  margin-top: 14rpx;
+  color: #7d8da6;
+  font-size: 28rpx;
+  line-height: 42rpx;
+}
+
+.submit-button {
+  margin-top: 44rpx;
+  margin-bottom: 20rpx;
+}
