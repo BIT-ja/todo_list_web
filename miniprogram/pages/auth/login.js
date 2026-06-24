@@ -1,5 +1,5 @@
 const authService = require('../../services/auth')
-const { setAuth } = require('../../utils/auth')
+const { getToken, setAuth } = require('../../utils/auth')
 
 function wxLoginCode() {
   return new Promise((resolve, reject) => {
@@ -19,6 +19,12 @@ Page({
     password: '',
     wechatLoading: false,
     passwordLoading: false,
+  },
+
+  onLoad() {
+    if (getToken()) {
+      wx.reLaunch({ url: '/pages/todos/index' })
+    }
   },
 
   onUsernameInput(event) {

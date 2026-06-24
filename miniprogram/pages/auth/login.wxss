@@ -1,78 +1,218 @@
 .auth-page {
+  position: relative;
+  overflow: hidden;
   min-height: 100vh;
-  padding: 64rpx 36rpx;
+  padding: 36rpx 32rpx calc(env(safe-area-inset-bottom) + 40rpx);
   box-sizing: border-box;
-  background: linear-gradient(180deg, #edf5ff 0%, #f7f8fa 42%);
+  background: linear-gradient(135deg, #e8f2ff 0%, #f6f2ff 48%, #fff8ef 100%);
+}
+
+.auth-page button::after {
+  border: 0;
+}
+
+.bg-orb {
+  position: absolute;
+  border-radius: 999rpx;
+  opacity: 0.82;
+}
+
+.orb-blue {
+  top: -118rpx;
+  right: -126rpx;
+  width: 310rpx;
+  height: 310rpx;
+  background: rgba(25, 137, 250, 0.16);
+}
+
+.orb-violet {
+  top: 360rpx;
+  left: -168rpx;
+  width: 290rpx;
+  height: 290rpx;
+  background: rgba(123, 97, 255, 0.14);
+}
+
+.login-shell {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-card,
+.action-card,
+.password-panel {
+  border: 1rpx solid rgba(255, 255, 255, 0.78);
+  border-radius: 36rpx;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 22rpx 52rpx rgba(31, 55, 88, 0.1);
 }
 
 .hero-card {
-  padding: 56rpx 36rpx;
-  text-align: center;
+  padding: 34rpx;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
 }
 
 .hero-logo {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 112rpx;
-  height: 112rpx;
-  border-radius: 36rpx;
+  flex: 0 0 96rpx;
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 30rpx;
   color: #fff;
-  font-size: 60rpx;
+  font-size: 54rpx;
   font-weight: 700;
-  background: linear-gradient(135deg, #1989fa, #7b61ff);
-  box-shadow: 0 18rpx 38rpx rgba(25, 137, 250, 0.24);
+  background: linear-gradient(135deg, #1a8cff 0%, #6d5dfc 100%);
+  box-shadow: 0 16rpx 32rpx rgba(35, 109, 246, 0.24);
+}
+
+.brand-copy {
+  min-width: 0;
+  margin-left: 24rpx;
+}
+
+.brand-kicker {
+  color: #6f7d95;
+  font-size: 22rpx;
+  font-weight: 700;
+  letter-spacing: 2rpx;
+  text-transform: uppercase;
 }
 
 .hero-title {
-  margin-top: 28rpx;
+  margin-top: 8rpx;
   color: #1f2933;
-  font-size: 48rpx;
+  font-size: 50rpx;
   font-weight: 800;
+  letter-spacing: 1rpx;
 }
 
 .hero-subtitle {
-  margin-top: 12rpx;
-  color: #7d8da6;
+  margin-top: 30rpx;
+  color: #65758b;
   font-size: 28rpx;
+  line-height: 42rpx;
 }
 
-.auth-actions {
-  display: grid;
-  gap: 20rpx;
+.feature-row {
+  display: flex;
+  margin-top: 26rpx;
 }
 
-.password-panel {
-  margin-top: 36rpx;
+.feature-pill {
+  margin-right: 14rpx;
+  padding: 12rpx 18rpx;
+  border-radius: 999rpx;
+  color: #3062c8;
+  font-size: 23rpx;
+  font-weight: 700;
+  background: rgba(25, 137, 250, 0.1);
+}
+
+.action-card {
+  margin-top: 24rpx;
   padding: 28rpx;
 }
 
+.wechat-button {
+  width: 100%;
+  height: 92rpx;
+  margin: 0;
+  border: 0;
+  border-radius: 999rpx;
+  color: #fff;
+  font-size: 31rpx;
+  font-weight: 800;
+  line-height: 92rpx;
+  background: linear-gradient(135deg, #1f8fff 0%, #6b5cff 100%);
+  box-shadow: 0 16rpx 32rpx rgba(45, 112, 246, 0.24);
+}
+
+.action-grid {
+  display: flex;
+  margin-top: 20rpx;
+}
+
+.soft-button {
+  flex: 1;
+  height: 78rpx;
+  margin: 0;
+  border: 1rpx solid rgba(131, 143, 163, 0.22);
+  border-radius: 999rpx;
+  color: #263445;
+  font-size: 26rpx;
+  font-weight: 700;
+  line-height: 78rpx;
+  background: rgba(248, 250, 252, 0.94);
+}
+
+.soft-button + .soft-button {
+  margin-left: 18rpx;
+}
+
+.hint-line {
+  margin-top: 18rpx;
+  color: #8a97aa;
+  font-size: 23rpx;
+  text-align: center;
+}
+
+.password-panel {
+  margin-top: 24rpx;
+  padding: 30rpx;
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 22rpx;
+}
+
 .panel-title {
-  margin-bottom: 20rpx;
   color: #323233;
-  font-size: 30rpx;
+  font-size: 32rpx;
   font-weight: 700;
 }
 
+.panel-subtitle {
+  color: #9aa4b2;
+  font-size: 23rpx;
+}
+
 .input-row {
-  height: 88rpx;
+  height: 92rpx;
   padding: 0 24rpx;
-  border: 1rpx solid #eef0f4;
-  border-radius: 18rpx;
-  background: #f9fafc;
+  border: 1rpx solid rgba(222, 227, 235, 0.78);
+  border-radius: 24rpx;
+  background: rgba(249, 250, 252, 0.92);
 }
 
 .input-row + .input-row {
-  margin-top: 16rpx;
+  margin-top: 18rpx;
 }
 
 .input-row input {
   width: 100%;
-  height: 88rpx;
+  height: 92rpx;
   color: #323233;
   font-size: 28rpx;
 }
 
-.login-button {
-  margin-top: 22rpx;
+.password-button {
+  width: 100%;
+  height: 84rpx;
+  margin: 24rpx 0 0;
+  border: 0;
+  border-radius: 999rpx;
+  color: #243043;
+  font-size: 29rpx;
+  font-weight: 800;
+  line-height: 84rpx;
+  background: #eef4ff;
 }

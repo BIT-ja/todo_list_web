@@ -1,24 +1,46 @@
 <view class="auth-page">
-  <view class="hero-card">
-    <view class="hero-logo">✓</view>
-    <view class="hero-title">组织待办</view>
-    <view class="hero-subtitle">微信一键登录后即可查看组织内待办</view>
-  </view>
+  <view class="bg-orb orb-blue"></view>
+  <view class="bg-orb orb-violet"></view>
 
-  <view class="auth-actions">
-    <button class="primary-button" loading="{{wechatLoading}}" bindtap="handleWechatLogin">微信一键登录</button>
-    <button class="plain-button" bindtap="goJoin">首次使用，填写邀请码加入</button>
-    <button class="plain-button" bindtap="goBind">已有账号，绑定微信</button>
-  </view>
+  <view class="login-shell">
+    <view class="hero-card">
+      <view class="brand-row">
+        <view class="hero-logo">✓</view>
+        <view class="brand-copy">
+          <view class="brand-kicker">for-love workspace</view>
+          <view class="hero-title">组织待办</view>
+        </view>
+      </view>
+      <view class="hero-subtitle">组织内任务、地点、评论和分类统一协作，微信登录后直接进入你的团队清单。</view>
 
-  <view class="password-panel card">
-    <view class="panel-title">账号密码登录</view>
-    <view class="input-row">
-      <input value="{{username}}" placeholder="用户名" bindinput="onUsernameInput" />
+      <view class="feature-row">
+        <view class="feature-pill">组织共享</view>
+        <view class="feature-pill">地点导航</view>
+        <view class="feature-pill">分类管理</view>
+      </view>
     </view>
-    <view class="input-row">
-      <input value="{{password}}" password placeholder="密码" bindinput="onPasswordInput" />
+
+    <view class="action-card">
+      <button class="wechat-button" loading="{{wechatLoading}}" bindtap="handleWechatLogin">微信一键登录</button>
+      <view class="action-grid">
+        <button class="soft-button" bindtap="goJoin">填写邀请码加入</button>
+        <button class="soft-button" bindtap="goBind">已有账号绑定</button>
+      </view>
+      <view class="hint-line">体验版需要微信后台允许当前接口域名访问。</view>
     </view>
-    <button class="plain-button login-button" loading="{{passwordLoading}}" bindtap="handlePasswordLogin">登录</button>
+
+    <view class="password-panel">
+      <view class="panel-head">
+        <view class="panel-title">账号密码登录</view>
+        <view class="panel-subtitle">用于 Web 账号兜底登录</view>
+      </view>
+      <view class="input-row">
+        <input value="{{username}}" placeholder="用户名" bindinput="onUsernameInput" />
+      </view>
+      <view class="input-row">
+        <input value="{{password}}" password placeholder="密码" bindinput="onPasswordInput" />
+      </view>
+      <button class="password-button" loading="{{passwordLoading}}" bindtap="handlePasswordLogin">登录</button>
+    </view>
   </view>
 </view>

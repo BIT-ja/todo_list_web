@@ -1,9 +1,9 @@
 {
   "pages": [
-    "pages/todos/index",
     "pages/auth/login",
     "pages/auth/join",
     "pages/auth/bind",
+    "pages/todos/index",
     "pages/todos/detail",
     "pages/todos/form",
     "pages/profile/index",
@@ -12,7 +12,7 @@
   "window": {
     "navigationBarBackgroundColor": "#f7f8fa",
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "待办事项",
+    "navigationBarTitleText": "组织待办",
     "backgroundColor": "#f7f8fa",
     "backgroundTextStyle": "dark"
   },

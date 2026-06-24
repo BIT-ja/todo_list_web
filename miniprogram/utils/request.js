@@ -14,13 +14,33 @@ function buildUrl(path, data, method) {
   return query ? `${API_BASE_URL}${normalizedPath}?${query}` : `${API_BASE_URL}${normalizedPath}`
 }
 
+function getNetworkFailMessage(err) {
+  const message = String(err && err.errMsg ? err.errMsg : '')
+  const normalized = message.toLowerCase()
+
+  if (normalized.includes('url not in domain list') || normalized.includes('domain list')) {
+    return '接口域名未配置，请在微信后台配置 request 合法域名'
+  }
+
+  if (normalized.includes('ssl') || normalized.includes('certificate') || normalized.includes('tls')) {
+    return 'HTTPS 证书或域名校验失败'
+  }
+
+  if (normalized.includes('timeout')) {
+    return '接口连接超时，请稍后重试'
+  }
+
+  return '网络请求失败，请检查接口域名'
+}
+
 function request(path, options = {}) {
   const method = options.method || 'GET'
   const token = getToken()
+  const url = buildUrl(path, options.data, method)
 
   return new Promise((resolve, reject) => {
     wx.request({
-      url: buildUrl(path, options.data, method),
+      url,
       method,
       data: method === 'GET' ? undefined : options.data,
       header: {
@@ -47,7 +67,8 @@ function request(path, options = {}) {
         resolve(body.data)
       },
       fail(err) {
-        wx.showToast({ title: '网络请求失败', icon: 'none' })
+        console.error('[request:fail]', url, err)
+        wx.showToast({ title: getNetworkFailMessage(err), icon: 'none' })
         reject(err)
       },
     })
