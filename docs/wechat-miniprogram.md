@@ -22,7 +22,7 @@ miniprogram/utils/config.js
 https://115.190.242.124/todo/api
 ```
 
-正式发布前需要替换为已备案、已配置到微信后台 request 合法域名的 HTTPS 域名。
+该地址可作为开发/调试目标。正式发布时，微信后台 request 合法域名通常要求已备案 HTTPS 域名，公网 IP 地址可能无法通过后台配置或审核。
 
 ## 后端新增配置
 
@@ -33,7 +33,7 @@ WECHAT_APP_ID=wxc71649546fe484cf
 WECHAT_APP_SECRET=从微信公众平台获取的 AppSecret
 ```
 
-`WECHAT_APP_SECRET` 只能放后端环境变量，不能写入小程序代码或前端代码。
+你已提供当前 AppID 对应的 AppSecret。该值只能放后端环境变量，不能写入小程序代码、前端代码或 Git 仓库。
 
 ## 后端新增接口
 
@@ -86,7 +86,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_users_wechat_openid ON users(wechat_openid
 2. 导入项目目录：`D:\personal\todo_list_web\miniprogram`。
 3. AppID 使用 `wxc71649546fe484cf`。
 4. 开发阶段如果仍使用 IP 地址接口，需要在微信开发者工具中临时关闭“校验合法域名、web-view、TLS 版本以及 HTTPS 证书”。
-5. 真机预览和正式版必须配置合法域名，并使用受信任 HTTPS 证书。
+5. 真机预览和正式版必须配置合法域名，并使用受信任 HTTPS 证书。若微信后台不接受公网 IP，请改用个人备案域名。
 
 ## 页面说明
 

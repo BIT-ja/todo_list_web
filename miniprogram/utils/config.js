@@ -1,4 +1,4 @@
 module.exports = {
-  // TODO(miniprogram-launch): 正式版替换为已备案且已配置到微信后台 request 合法域名的 HTTPS 域名。
+  // 开发/调试目标。正式发布时微信 request 合法域名通常要求备案域名，公网 IP 可能无法通过后台配置或审核。
   API_BASE_URL: 'https://115.190.242.124/todo/api',
 }
